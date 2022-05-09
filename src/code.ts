@@ -1,4 +1,7 @@
-// reference: https://ttssh2.osdn.jp/manual/4/en/about/ctrlseq.html
+// reference:
+//
+// https://ttssh2.osdn.jp/manual/4/en/about/ctrlseq.html
+// https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
 export enum ANSI {
 	Undefined = Number.NaN,
