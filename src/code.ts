@@ -1,4 +1,4 @@
-export enum ASCII {
+export enum ANSI {
 	ESC = 27,
 	Space = 32,
 	Exclamation = 33,

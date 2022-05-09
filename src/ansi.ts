@@ -1,4 +1,4 @@
-import { ASCII, isNumber, isPrintable, SGR } from "./code"
+import { ANSI, isNumber, isPrintable, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, ThemeConfig, toCss, toRgb } from "./colors"
 
 export interface Word {
@@ -60,15 +60,15 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			a = b
 		}
 		switch (char) {
-			case ASCII.ESC:
-				if (rawText.charCodeAt(b + 1) === ASCII.LeftSquareBracket) {
+			case ANSI.ESC:
+				if (rawText.charCodeAt(b + 1) === ANSI.LeftSquareBracket) {
 					b = setContext(b + 2)
 				} else {
 					b = b + 2 // skip
 				}
 				a = b
 				break
-			case ASCII.CSI:
+			case ANSI.CSI:
 				b = setContext(b + 1)
 				a = b
 				break
@@ -251,7 +251,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		const n: number[] = []
 		let a = index
 		let b = index
-		let m: ASCII = Number.NaN
+		let m: ANSI = Number.NaN
 
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
@@ -272,48 +272,48 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			a = b
 
 			switch (m) {
-				case ASCII.LessThan:
-					if (char === ASCII.t) return b
+				case ANSI.LessThan:
+					if (char === ANSI.t) return b
 					return b - 1
-				case ASCII.Equal:
-					if (char === ASCII.c) return b
+				case ANSI.Equal:
+					if (char === ANSI.c) return b
 					return b - 1
-				case ASCII.GreaterThan:
+				case ANSI.GreaterThan:
 					switch (char) {
-						case ASCII.J:
-						case ASCII.K:
+						case ANSI.J:
+						case ANSI.K:
 							return b
 						default:
 							return b - 1
 					}
-				case ASCII.Question:
+				case ANSI.Question:
 					switch (char) {
-						case ASCII.J:
-						case ASCII.K:
-						case ASCII.h:
-						case ASCII.i:
-						case ASCII.l:
-						case ASCII.n:
+						case ANSI.J:
+						case ANSI.K:
+						case ANSI.h:
+						case ANSI.i:
+						case ANSI.l:
+						case ANSI.n:
 							return b
-						case ASCII.Dollar:
-							if (rawText.charCodeAt(b) === ASCII.p) return b
+						case ANSI.Dollar:
+							if (rawText.charCodeAt(b) === ANSI.p) return b
 							return b - 1
 						default:
 							return b - 1
 					}
-				case ASCII.Exclamation:
-					if (char === ASCII.p) return b
+				case ANSI.Exclamation:
+					if (char === ANSI.p) return b
 					return b - 1
 			}
 
 			const nextChar = rawText.charCodeAt(b)
 			switch (char) {
-				case ASCII.SemiColon:
-					m = ASCII.SemiColon
+				case ANSI.SemiColon:
+					m = ANSI.SemiColon
 					continue
-				case ASCII.m:
+				case ANSI.m:
 					ctx.strike = false
-					if (m !== ASCII.SemiColon) setAttribute(n)
+					if (m !== ANSI.SemiColon) setAttribute(n)
 					else {
 						ctx.fgIndexOrRgb = -1
 						ctx.bgIndexOrRgb = -1
@@ -326,77 +326,77 @@ export function parseWithContext(ctx: Context, rawText: string) {
 						ctx.hidden = false
 					}
 					break
-				case ASCII.At:
-				case ASCII.A:
-				case ASCII.B:
-				case ASCII.C:
-				case ASCII.D:
-				case ASCII.E:
-				case ASCII.F:
-				case ASCII.G:
-				case ASCII.H:
-				case ASCII.I:
-				case ASCII.J:
-				case ASCII.K:
-				case ASCII.L:
-				case ASCII.M:
-				case ASCII.P:
-				case ASCII.S:
-				case ASCII.T:
-				case ASCII.X:
-				case ASCII.Z:
-				case ASCII.Backstick:
-				case ASCII.a:
-				case ASCII.b:
-				case ASCII.c:
-				case ASCII.d:
-				case ASCII.e:
-				case ASCII.f:
-				case ASCII.g:
-				case ASCII.h:
-				case ASCII.i:
-				case ASCII.j:
-				case ASCII.k:
-				case ASCII.l:
-				case ASCII.n:
-				case ASCII.r:
-				case ASCII.s:
-				case ASCII.t:
-				case ASCII.u:
+				case ANSI.At:
+				case ANSI.A:
+				case ANSI.B:
+				case ANSI.C:
+				case ANSI.D:
+				case ANSI.E:
+				case ANSI.F:
+				case ANSI.G:
+				case ANSI.H:
+				case ANSI.I:
+				case ANSI.J:
+				case ANSI.K:
+				case ANSI.L:
+				case ANSI.M:
+				case ANSI.P:
+				case ANSI.S:
+				case ANSI.T:
+				case ANSI.X:
+				case ANSI.Z:
+				case ANSI.Backstick:
+				case ANSI.a:
+				case ANSI.b:
+				case ANSI.c:
+				case ANSI.d:
+				case ANSI.e:
+				case ANSI.f:
+				case ANSI.g:
+				case ANSI.h:
+				case ANSI.i:
+				case ANSI.j:
+				case ANSI.k:
+				case ANSI.l:
+				case ANSI.n:
+				case ANSI.r:
+				case ANSI.s:
+				case ANSI.t:
+				case ANSI.u:
 					return b
-				case ASCII.LessThan:
-					if (nextChar === ASCII.r) return b + 1
-					if (nextChar === ASCII.s) return b + 1
-					m = ASCII.LessThan
+				case ANSI.LessThan:
+					if (nextChar === ANSI.r) return b + 1
+					if (nextChar === ANSI.s) return b + 1
+					m = ANSI.LessThan
 					if (isNumber(nextChar)) continue
 					break
-				case ASCII.GreaterThan:
-					m = ASCII.GreaterThan
+				case ANSI.GreaterThan:
+					m = ANSI.GreaterThan
 					if (isNumber(nextChar)) continue
 					break
-				case ASCII.Question:
-					m = ASCII.Question
+				case ANSI.Question:
+					m = ANSI.Question
 					if (isNumber(nextChar)) continue
 					break
-				case ASCII.Space:
-					if (nextChar === ASCII.q) return b + 1
+				case ANSI.Space:
+					if (nextChar === ANSI.q) return b + 1
 					break
-				case ASCII.DoubleQuote:
-					if (nextChar === ASCII.p) return b + 1
-					if (nextChar === ASCII.q) return b + 1
+				case ANSI.DoubleQuote:
+					if (nextChar === ANSI.p) return b + 1
+					if (nextChar === ANSI.q) return b + 1
 					break
-				case ASCII.Dollar:
-					if (nextChar === ASCII.p) return b + 1
-					if (nextChar === ASCII.z) return b + 1
-					if (nextChar === ASCII.LeftCurlyBracket) return b + 1
-					if (nextChar === ASCII.RightCurlyBracket) return b + 1
-					if (nextChar === ASCII.Tilde) return b + 1
+				case ANSI.Dollar:
+					if (nextChar === ANSI.p) return b + 1
+					if (nextChar === ANSI.z) return b + 1
+					if (nextChar === ANSI.LeftCurlyBracket) return b + 1
+					if (nextChar === ANSI.RightCurlyBracket) return b + 1
+					if (nextChar === ANSI.Tilde) return b + 1
 					break
-				case ASCII.SingleQuote:
-					if (nextChar === ASCII.w) return b + 1
-					if (nextChar === ASCII.z) return b + 1
-					if (nextChar === ASCII.LeftCurlyBracket) return b + 1
-					if (nextChar === ASCII.VerticalBar) return b + 1
+				case ANSI.SingleQuote:
+					if (nextChar === ANSI.w) return b + 1
+					if (nextChar === ANSI.z) return b + 1
+					if (nextChar === ANSI.LeftCurlyBracket) return b + 1
+					if (nextChar === ANSI.VerticalBar) return b + 1
 					break
 			}
 			return b
@@ -423,7 +423,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			const a = attributes[i]
 			const b = attributes[i + 1]
 			let code = 0
-			for (let k = a; k < b; k++) code = 10 * code + rawText.charCodeAt(k) - ASCII._0
+			for (let k = a; k < b; k++) code = 10 * code + rawText.charCodeAt(k) - ANSI._0
 			attrs.push(code)
 		}
 
