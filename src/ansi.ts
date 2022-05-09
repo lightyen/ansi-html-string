@@ -21,7 +21,7 @@ export interface Options {
 
 const defaultMinimumContrastRatio = 3
 
-function createContext({ minimumContrastRatio, theme }: Options = {}) {
+export function createContext({ minimumContrastRatio, theme }: Options = {}) {
 	return {
 		contrastCache: new ContrastCache(),
 		minimumContrastRatio: minimumContrastRatio ?? defaultMinimumContrastRatio,
@@ -39,17 +39,9 @@ function createContext({ minimumContrastRatio, theme }: Options = {}) {
 	}
 }
 
-let cache: ReturnType<typeof createContext> | undefined
+export type Context = ReturnType<typeof createContext>
 
-function getContext(options?: Options): ReturnType<typeof createContext> {
-	if (cache && options == undefined) return cache
-	cache = createContext(options)
-	return cache
-}
-
-export function parseWithOptions(rawText: string, options?: Options) {
-	const ctx = getContext(options)
-
+export function parseWithContext(ctx: Context, rawText: string) {
 	const words: Word[] = []
 	const buffer: number[] = []
 

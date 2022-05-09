@@ -1,4 +1,4 @@
-import { Options, parseWithOptions, Word } from "./ansi"
+import { Context, createContext, Options, parseWithContext, Word } from "./ansi"
 
 function merge(words: Word[]) {
 	type State = Omit<Word, "value">
@@ -83,8 +83,17 @@ function renderSpan(words: Word[]): string {
 	}
 }
 
-export function toHtml(rawText: string, options?: Options): string {
-	return renderSpan(parseWithOptions(rawText, options))
+let cache: Context | undefined
+
+function getContext(options?: Options): Context {
+	if (cache && options == undefined) return cache
+	cache = createContext(options)
+	return cache
+}
+
+export function toHtml(ansiText: string, options?: Options) {
+	const ctx = getContext(options)
+	return renderSpan(parseWithContext(ctx, ansiText))
 }
 
 const debugText = `	Standard colors:
@@ -169,12 +178,16 @@ const debugText = `	Standard colors:
 
 interface DemoOptions {
 	fontSize?: string
+	fontFamily?: string
 }
 
 export function toDemo(rawText: string | null | undefined, options?: Options & DemoOptions): string {
 	if (rawText == undefined) rawText = debugText
 	const fontSize = options?.fontSize || "initial"
+	const fontFamily = options?.fontFamily || "initial"
+	const background = options?.theme?.background || "initial"
 	delete options?.fontSize
+	delete options?.fontFamily
 	return `<!DOCTYPE html>
 <html lang="en">
 	<head>
@@ -183,8 +196,15 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Document</title>
 	</head>
-	<body style="background: ${options?.theme?.background}">
-		<pre style="font-size: ${fontSize}">${renderSpan(merge(parseWithOptions(rawText, options)))}</pre>
+	<body style="background: ${background}">
+		<pre style="font-size: ${fontSize}; font-family: ${fontFamily}">${renderSpan(
+		merge(parseWithContext(getContext(options), rawText)),
+	)}</pre>
 	</body>
 </html>`
+}
+
+export function createToHtml(options?: Options) {
+	const ctx = createContext(options)
+	return (ansiText: string) => renderSpan(parseWithContext(ctx, ansiText))
 }

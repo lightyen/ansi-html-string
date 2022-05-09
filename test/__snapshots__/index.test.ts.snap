@@ -9,8 +9,8 @@ exports[`render 1`] = `
 		<meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
 		<title>Document</title>
 	</head>
-	<body style=\\"background: undefined\\">
-		<pre style=\\"font-size: initial\\">MacroError:
+	<body style=\\"background: initial\\">
+		<pre style=\\"font-size: initial; font-family: initial\\">MacroError:
 src/AppMain.tsx
 
 <span style=\\"color: #ff8383\\">&#10005; </span><span style=\\"color: #ffd3d3\\">bg-indigoa-400</span><span style=\\"color: #ff8383\\"> was not found</span>
