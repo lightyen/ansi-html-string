@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render 1`] = `
+"<!DOCTYPE html>
+<html lang=\\"en\\">
+	<head>
+		<meta charset=\\"UTF-8\\">
+		<meta http-equiv=\\"X-UA-Compatible\\" content=\\"IE=edge\\">
+		<meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
+		<title>Document</title>
+	</head>
+	<body style=\\"background: undefined\\">
+		<pre style=\\"font-size: initial\\">MacroError:
+src/AppMain.tsx
+
+<span style=\\"color: #ff8383\\">&#10005; </span><span style=\\"color: #ffd3d3\\">bg-indigoa-400</span><span style=\\"color: #ff8383\\"> was not found</span>
+
+Try one of these classes:
+
+<span style=\\"color: #999999\\">-</span> <span style=\\"color: #f0a45d\\">bg-indigo-400</span> <span style=\\"color: #999999\\">&gt;</span> <span style=\\"color: #818cf8\\">&#9635; </span>#818cf8
+<span style=\\"color: #999999\\">-</span> <span style=\\"color: #f0a45d\\">bg-indigo-100</span> <span style=\\"color: #999999\\">&gt;</span> <span style=\\"color: #e0e7ff\\">&#9635; </span>#e0e7ff
+<span style=\\"color: #999999\\">-</span> <span style=\\"color: #f0a45d\\">bg-indigo-200</span> <span style=\\"color: #999999\\">&gt;</span> <span style=\\"color: #c7d2fe\\">&#9635; </span>#c7d2fe
+<span style=\\"color: #999999\\">-</span> <span style=\\"color: #f0a45d\\">bg-indigo-300</span> <span style=\\"color: #999999\\">&gt;</span> <span style=\\"color: #a5b4fc\\">&#9635; </span>#a5b4fc
+<span style=\\"color: #999999\\">-</span> <span style=\\"color: #f0a45d\\">bg-indigo-500</span> <span style=\\"color: #999999\\">&gt;</span> <span style=\\"color: #6366f1\\">&#9635; </span>#6366f1
+
+	Standard colors:
+	<span style=\\"background-color: #000000\\">  </span><span style=\\"background-color: #D34F56\\">  </span><span style=\\"background-color: #B9C954\\">  </span><span style=\\"background-color: #E6C452\\">  </span><span style=\\"background-color: #7CA7D8\\">  </span><span style=\\"background-color: #C299D6\\">  </span><span style=\\"background-color: #73BFB1\\">  </span><span style=\\"background-color: #FFFFFF\\">  </span>
+	<span style=\\"background-color: #4f5666\\">  </span><span style=\\"background-color: #ff616e\\">  </span><span style=\\"background-color: #a5e075\\">  </span><span style=\\"background-color: #f0a45d\\">  </span><span style=\\"background-color: #4dc4ff\\">  </span><span style=\\"background-color: #de73ff\\">  </span><span style=\\"background-color: #4cd1e0\\">  </span><span style=\\"background-color: #d7dae0\\">  </span>
+
+</pre>
+	</body>
+</html>"
+`;

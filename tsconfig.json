@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "outDir": "lib",
+    "types": ["@types/node", "@types/jest"]
+  },
+  "exclude": ["jest.config.ts", "test/**/*", "lib/**/*"]
+}
