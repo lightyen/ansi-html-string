@@ -60,16 +60,27 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			a = b
 		}
 		switch (char) {
-			case ANSI.ESC:
-				if (rawText.charCodeAt(b + 1) === ANSI.LeftSquareBracket) {
-					b = setContext(b + 2)
-				} else {
-					b = b + 2 // skip
+			case ANSI.ESC: {
+				const nextChar = rawText.charCodeAt(b + 1)
+				switch (nextChar) {
+					case ANSI.LeftSquareBracket:
+						b = readCSI(b + 2)
+						break
+					case ANSI.RightSquareBracket:
+						b = readOSC(b + 2)
+						break
+					default:
+						b = b + 2
 				}
 				a = b
 				break
+			}
 			case ANSI.CSI:
-				b = setContext(b + 1)
+				b = readCSI(b + 1)
+				a = b
+				break
+			case ANSI.OSC:
+				b = readOSC(b + 1)
 				a = b
 				break
 			default:
@@ -246,7 +257,8 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
-	function setContext(index: number): number {
+	/** @return last index */
+	function readCSI(index: number): number {
 		if (index >= rawText.length) return index
 		const n: number[] = []
 		let a = index
@@ -403,6 +415,12 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 
 		return b
+	}
+
+	/** @return last index */
+	function readOSC(index: number): number {
+		if (index >= rawText.length) return index
+		return index + 2
 	}
 
 	function setAttribute(attributes: number[]) {
