@@ -408,8 +408,23 @@ export function toColorObject(hexRgb: string) {
 		css: hexRgb,
 	}
 	function hexToColor(rgb: string): number {
-		const v = parseInt(rgb.slice(1), 16)
-		if (Number.isNaN(v)) return -1
+		let s = rgb.replace("#", "")
+		let v = -1
+		switch (s.length) {
+			case 8:
+				s = s.slice(0, 6)
+				break
+			case 6:
+				break
+			case 4:
+			case 3:
+				s = s.slice(0, 1).repeat(2) + s.slice(1, 2).repeat(2) + s.slice(2, 3).repeat(2)
+				break
+			default:
+				return -1
+		}
+		v = parseInt(s, 16)
+		if (Number.isNaN(v)) v = -1
 		return v
 	}
 }

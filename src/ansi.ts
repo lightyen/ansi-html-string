@@ -234,7 +234,7 @@ export function parseWithOptions(rawText: string, options?: Options) {
 			case ColorMode.P16:
 			case ColorMode.P256: {
 				const color = ctx.palette.colors.at(bgIndexOrRgb)
-				if (!color) throw Error(`background is not defined: ${ctx.palette.colors.length} ${bgIndexOrRgb}`)
+				if (!color) throw Error(`background is not defined: ${bgIndexOrRgb}`)
 				return color.rgb
 			}
 			case ColorMode.RGB:
