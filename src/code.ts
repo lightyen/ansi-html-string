@@ -1,5 +1,41 @@
+// reference: https://ttssh2.osdn.jp/manual/4/en/about/ctrlseq.html
+
 export enum ANSI {
-	ESC = 27,
+	Undefined = Number.NaN,
+	NUL = 0x00,
+	SOH = 0x01,
+	STX = 0x02,
+	ETX = 0x03,
+	EOT = 0x04,
+	ENQ = 0x05,
+	ACK = 0x06,
+	BEL = 0x07,
+	BS = 0x08,
+	HT = 0x09,
+	LF = 0x0a,
+	VT = 0x0b,
+	FF = 0x0c,
+	CR = 0x0d,
+	SO = 0x0e,
+	SI = 0x0f,
+	DLE = 0x10,
+	DC1 = 0x11,
+	DC2 = 0x12,
+	DC3 = 0x13,
+	DC4 = 0x14,
+	NAK = 0x15,
+	SYN = 0x16,
+	ETB = 0x17,
+	CAN = 0x18,
+	EM = 0x19,
+	SUB = 0x1a,
+	ESC = 0x1b,
+	DCS = 0x90, // ESC P
+	CSI = 0x9b, // ESC [
+	ST = 0x9c, // ESC \
+	OSC = 0x9d, // ESC ]
+	PM = 0x9e, // ESC ^
+	APC = 0x9f, // ESC _
 	Space = 32,
 	Exclamation = 33,
 	DoubleQuote = 34,
@@ -95,7 +131,6 @@ export enum ANSI {
 	VerticalBar = 124,
 	RightCurlyBracket = 125,
 	Tilde = 126,
-	CSI = 155,
 }
 
 export enum SGR {
