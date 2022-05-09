@@ -95,6 +95,7 @@ export enum ASCII {
 	VerticalBar = 124,
 	RightCurlyBracket = 125,
 	Tilde = 126,
+	CSI = 155,
 }
 
 export enum SGR {

@@ -61,6 +61,14 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 		switch (char) {
 			case ASCII.ESC:
+				if (rawText.charCodeAt(b + 1) === ASCII.LeftSquareBracket) {
+					b = setContext(b + 2)
+				} else {
+					b = b + 2 // skip
+				}
+				a = b
+				break
+			case ASCII.CSI:
 				b = setContext(b + 1)
 				a = b
 				break
@@ -239,10 +247,6 @@ export function parseWithContext(ctx: Context, rawText: string) {
 	}
 
 	function setContext(index: number): number {
-		// CSI Sequence
-		if (rawText.charCodeAt(index) !== ASCII.LeftSquareBracket) return index + 1
-		index++
-
 		if (index >= rawText.length) return index
 		const n: number[] = []
 		let a = index

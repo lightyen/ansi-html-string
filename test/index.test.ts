@@ -1,4 +1,4 @@
-import { toDemo } from "../src"
+import { toDemo, toHtml } from "../src"
 
 it("render", () => {
 	const text = `MacroError:
@@ -36,4 +36,12 @@ Try one of these classes:
 	})
 
 	expect(output).toMatchSnapshot()
+})
+
+it("start with ESC", () => {
+	expect(toHtml(`\x1b[30mhello\x9b0mworld`)).toEqual('<span style="color: #000000">hello</span>world')
+})
+
+it("start with CSI", () => {
+	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color: #000000">hello</span>world')
 })
