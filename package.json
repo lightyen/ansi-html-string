@@ -6,6 +6,7 @@
   "main": "./lib/index.js",
   "scripts": {
     "compile": "tsc",
+    "prepublish": "npm run test && npm run build",
     "format": "prettier --config .prettierrc.yml --write {,**/}*.ts",
     "build": "npm run compile && npm run format",
     "test": "jest"

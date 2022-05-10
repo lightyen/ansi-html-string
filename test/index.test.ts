@@ -16,20 +16,26 @@ const options = {
 
 it("start with ESC", () => {
 	const toHtml = createToHtml(options)
-	expect(toHtml(`\x1b[30mhello\x9b0mworld`)).toEqual('<span style="color: #000000">hello</span>world')
+	expect(toHtml(`\x1b[30mhello\x9bmworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
 it("start with CSI", () => {
 	const toHtml = createToHtml(options)
-	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color: #000000">hello</span>world')
+	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
 it("hyperlink", () => {
 	const toHtml = createToHtml(options)
 	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
 	expect(toHtml(rawText)).toEqual(
-		'he<span style="color: #D34F56">llo</span><a href="http://example.com" id="app"><span style="color: #D34F56">This is </span></a><a href="http://example.com" id="app" rel="noopener noreferrer"><span style="color: #D34F56">a </span><span style="color: #7CA7D8">link</span></a><span style="color: #7CA7D8">world</span>',
+		'he<span style="color:#D34F56">llo</span><a href="http://example.com" id="app"><span style="color:#D34F56">This is </span></a><a href="http://example.com" id="app" rel="noopener noreferrer"><span style="color:#D34F56">a </span><span style="color:#7CA7D8">link</span></a><span style="color:#7CA7D8">world</span>',
 	)
+})
+
+it("clear", () => {
+	const toHtml = createToHtml(options)
+	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`
+	expect(toHtml(rawText)).toEqual("helloworld")
 })
 
 it("render", () => {

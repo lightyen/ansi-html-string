@@ -38,6 +38,7 @@ export interface Context {
 	fgMode: ColorMode
 	bgMode: ColorMode
 	bold: boolean
+	dim: boolean
 	underline: boolean
 	inverse: boolean
 	italic: boolean
@@ -55,6 +56,7 @@ export function createContext({ minimumContrastRatio = defaultMinimumContrastRat
 		fgMode: ColorMode.DEFAULT,
 		bgMode: ColorMode.DEFAULT,
 		bold: false,
+		dim: false,
 		underline: false,
 		inverse: false,
 		italic: false,
@@ -139,7 +141,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		const word: Word = {
 			foreground: getForegroundCss(bgMode, bgColor, fgMode, fgColor, ctx.inverse, ctx.bold),
 			background: getBackgroundCss(bgMode, bgColor, ctx.inverse),
-			bold: ctx.bold,
+			bold: ctx.bold || ctx.dim,
 			underline: ctx.underline,
 			italic: ctx.italic,
 			strike: ctx.strike,
@@ -147,12 +149,6 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			value,
 		}
 
-		// if (ctx.anchor) {
-		// 	word.anchor = {
-		// 		url: ctx.anchor.url,
-		// 		params: { ...ctx.anchor.params },
-		// 	}
-		// }
 		return word
 	}
 
@@ -292,164 +288,229 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
+	function getNumber(a: number, b: number): number {
+		let ans = 0
+		for (let k = a; k < b; k++) ans = 10 * ans + rawText.charCodeAt(k) - ANSI._0
+		return ans
+	}
+
 	/** @return last index */
 	function readCSI(index: number): number {
 		if (index >= rawText.length) return index
-		const n: number[] = []
+
+		// format: CSI memo # end
+		// memo: <, =, ... or null
+		// #: 1;2;3;4 ...
+		// end: s, r, m, $p, ... (non-null)
+
 		let a = index
 		let b = index
-		let m: ANSI = Number.NaN
+		let memo: ANSI | null = ANSI.Undefined
+		let invalid = false
+		const valueIndices: number[] = []
 
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
-
 			if (!isPrintable(char)) return b
 
-			if (isNumber(char)) {
-				b++
-				m = Number.NaN
+			if (Number.isNaN(memo)) {
+				switch (char) {
+					case ANSI.LessThan:
+					case ANSI.Equal:
+					case ANSI.GreaterThan:
+					case ANSI.Question:
+					case ANSI.SingleQuote:
+					case ANSI.Exclamation:
+						memo = char
+						b++
+						a = b
+						break
+					default:
+						memo = null
+				}
 				continue
 			}
 
-			if (a < b) {
-				n.push(a, b)
+			const e = end(char, b)
+			if (e > 0) return e
+
+			if (e === -2) {
+				b++
+				continue
 			}
 
+			eatNum()
 			b++
 			a = b
+		}
+		return b
 
-			switch (m) {
-				case ANSI.LessThan:
-					if (char === ANSI.t) return b
-					return b - 1
-				case ANSI.Equal:
-					if (char === ANSI.c) return b
-					return b - 1
-				case ANSI.GreaterThan:
-					switch (char) {
+		function eatNum() {
+			if (a < b) valueIndices.push(a, b)
+			else invalid = true
+		}
+
+		function end(lastChar: number, currentIndex: number): number {
+			if (isNumber(lastChar)) {
+				return -2
+			}
+
+			switch (memo) {
+				case null:
+					switch (lastChar) {
+						case ANSI.m:
+							eatNum()
+							ctx.strike = false
+							if (invalid) {
+								ctx.fgIndexOrRgb = -1
+								ctx.bgIndexOrRgb = -1
+								ctx.fgMode = ColorMode.DEFAULT
+								ctx.bgMode = ColorMode.DEFAULT
+								ctx.bold = false
+								ctx.dim = false
+								ctx.italic = false
+								ctx.underline = false
+								ctx.inverse = false
+								ctx.hidden = false
+							} else {
+								setAttribute(valueIndices)
+							}
+							return currentIndex + 1
+						case ANSI.At:
+						case ANSI.A:
+						case ANSI.B:
+						case ANSI.C:
+						case ANSI.D:
+						case ANSI.E:
+						case ANSI.F:
+						case ANSI.G:
+						case ANSI.H:
+						case ANSI.I:
 						case ANSI.J:
 						case ANSI.K:
-							return b
+						case ANSI.L:
+						case ANSI.M:
+						case ANSI.P:
+						case ANSI.S:
+						case ANSI.T:
+						case ANSI.X:
+						case ANSI.Z:
+						case ANSI.Backstick:
+						case ANSI.a:
+						case ANSI.b: // case ANSI.c:
+						case ANSI.d:
+						case ANSI.e:
+						case ANSI.f:
+						case ANSI.g:
+						case ANSI.h:
+						case ANSI.i:
+						case ANSI.j:
+						case ANSI.k:
+						case ANSI.n:
+						case ANSI.r:
+						case ANSI.s:
+						case ANSI.t:
+						case ANSI.u:
+							// eatNum()
+							return currentIndex + 1
+						case ANSI.Space:
+							switch (lastChar) {
+								case ANSI.q:
+									return currentIndex + 1
+								default:
+									return currentIndex
+							}
+						case ANSI.DoubleQuote:
+							switch (lastChar) {
+								case ANSI.p:
+								case ANSI.q:
+									return currentIndex + 1
+								default:
+									return currentIndex
+							}
+						case ANSI.Dollar:
+							switch (lastChar) {
+								case ANSI.p:
+								case ANSI.z:
+								case ANSI.LeftCurlyBracket:
+								case ANSI.RightCurlyBracket:
+								case ANSI.Tilde:
+									return currentIndex + 1
+								default:
+									return currentIndex
+							}
+						case ANSI.SingleQuote:
+							switch (lastChar) {
+								case ANSI.w:
+								case ANSI.z:
+								case ANSI.LeftCurlyBracket:
+									return currentIndex + 1
+								default:
+									return currentIndex
+							}
+					}
+					break
+				case ANSI.LessThan:
+					switch (lastChar) {
+						case ANSI.r:
+						case ANSI.s:
+						case ANSI.t:
+							// eatNum()
+							return currentIndex + 1
 						default:
-							return b - 1
+							return currentIndex
+					}
+				case ANSI.Equal:
+					switch (lastChar) {
+						case ANSI.c:
+							// eatNum()
+							return currentIndex + 1
+						default:
+							return currentIndex
+					}
+				case ANSI.GreaterThan:
+					switch (lastChar) {
+						case ANSI.c:
+						case ANSI.J:
+						case ANSI.K:
+							// eatNum()
+							return currentIndex + 1
+						default:
+							return currentIndex
 					}
 				case ANSI.Question:
-					switch (char) {
-						case ANSI.J:
+					eatNum()
+					switch (lastChar) {
+						case ANSI.J: {
+							const values: number[] = []
+							for (let i = 0; i < valueIndices.length; i += 2) {
+								values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
+							}
+							const v = values[values.length - 1]
+							if (v === 1 || v === 2) words.splice(0)
+							return currentIndex + 1
+						}
 						case ANSI.K:
 						case ANSI.h:
 						case ANSI.i:
 						case ANSI.l:
 						case ANSI.n:
-							return b
+							return currentIndex + 1
 						case ANSI.Dollar:
-							if (rawText.charCodeAt(b) === ANSI.p) return b
-							return b - 1
+							if (rawText.charCodeAt(currentIndex) === ANSI.p) return currentIndex + 1
+							return currentIndex
 						default:
-							return b - 1
+							return currentIndex
 					}
-				case ANSI.Exclamation:
-					if (char === ANSI.p) return b
-					return b - 1
-			}
-
-			const nextChar = rawText.charCodeAt(b)
-			switch (char) {
-				case ANSI.SemiColon:
-					m = ANSI.SemiColon
-					continue
-				case ANSI.m:
-					ctx.strike = false
-					if (m !== ANSI.SemiColon) setAttribute(n)
-					else {
-						ctx.fgIndexOrRgb = -1
-						ctx.bgIndexOrRgb = -1
-						ctx.fgMode = ColorMode.DEFAULT
-						ctx.bgMode = ColorMode.DEFAULT
-						ctx.bold = false
-						ctx.italic = false
-						ctx.underline = false
-						ctx.inverse = false
-						ctx.hidden = false
-					}
-					break
-				case ANSI.At:
-				case ANSI.A:
-				case ANSI.B:
-				case ANSI.C:
-				case ANSI.D:
-				case ANSI.E:
-				case ANSI.F:
-				case ANSI.G:
-				case ANSI.H:
-				case ANSI.I:
-				case ANSI.J:
-				case ANSI.K:
-				case ANSI.L:
-				case ANSI.M:
-				case ANSI.P:
-				case ANSI.S:
-				case ANSI.T:
-				case ANSI.X:
-				case ANSI.Z:
-				case ANSI.Backstick:
-				case ANSI.a:
-				case ANSI.b:
-				case ANSI.c:
-				case ANSI.d:
-				case ANSI.e:
-				case ANSI.f:
-				case ANSI.g:
-				case ANSI.h:
-				case ANSI.i:
-				case ANSI.j:
-				case ANSI.k:
-				case ANSI.l:
-				case ANSI.n:
-				case ANSI.r:
-				case ANSI.s:
-				case ANSI.t:
-				case ANSI.u:
-					return b
-				case ANSI.LessThan:
-					if (nextChar === ANSI.r) return b + 1
-					if (nextChar === ANSI.s) return b + 1
-					m = ANSI.LessThan
-					if (isNumber(nextChar)) continue
-					break
-				case ANSI.GreaterThan:
-					m = ANSI.GreaterThan
-					if (isNumber(nextChar)) continue
-					break
-				case ANSI.Question:
-					m = ANSI.Question
-					if (isNumber(nextChar)) continue
-					break
-				case ANSI.Space:
-					if (nextChar === ANSI.q) return b + 1
-					break
-				case ANSI.DoubleQuote:
-					if (nextChar === ANSI.p) return b + 1
-					if (nextChar === ANSI.q) return b + 1
-					break
-				case ANSI.Dollar:
-					if (nextChar === ANSI.p) return b + 1
-					if (nextChar === ANSI.z) return b + 1
-					if (nextChar === ANSI.LeftCurlyBracket) return b + 1
-					if (nextChar === ANSI.RightCurlyBracket) return b + 1
-					if (nextChar === ANSI.Tilde) return b + 1
-					break
 				case ANSI.SingleQuote:
-					if (nextChar === ANSI.w) return b + 1
-					if (nextChar === ANSI.z) return b + 1
-					if (nextChar === ANSI.LeftCurlyBracket) return b + 1
-					if (nextChar === ANSI.VerticalBar) return b + 1
-					break
+					if (lastChar === ANSI.LeftCurlyBracket) return currentIndex + 1
+					return currentIndex
+				case ANSI.Exclamation:
+					if (lastChar === ANSI.p) return currentIndex + 1
+					return currentIndex
 			}
-			return b
+			return -1
 		}
-
-		return b
 	}
 
 	/** @return last index */
@@ -550,6 +611,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			ctx.fgMode = ColorMode.DEFAULT
 			ctx.bgMode = ColorMode.DEFAULT
 			ctx.bold = false
+			ctx.dim = false
 			ctx.italic = false
 			ctx.underline = false
 			ctx.inverse = false
@@ -558,11 +620,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 		const attrs: number[] = []
 		for (let i = 0; i < attributes.length; i += 2) {
-			const a = attributes[i]
-			const b = attributes[i + 1]
-			let code = 0
-			for (let k = a; k < b; k++) code = 10 * code + rawText.charCodeAt(k) - ANSI._0
-			attrs.push(code)
+			attrs.push(getNumber(attributes[i], attributes[i + 1]))
 		}
 
 		for (let i = 0; i < attrs.length; i++) {
@@ -574,6 +632,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					ctx.fgMode = ColorMode.DEFAULT
 					ctx.bgMode = ColorMode.DEFAULT
 					ctx.bold = false
+					ctx.dim = false
 					ctx.italic = false
 					ctx.underline = false
 					ctx.inverse = false
@@ -584,7 +643,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					ctx.bold = true
 					break
 				case SGR.Dim:
-					// TODO: change contrast
+					ctx.dim = true
 					break
 				case SGR.Italic:
 					ctx.italic = true

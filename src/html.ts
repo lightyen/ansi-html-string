@@ -99,17 +99,17 @@ function renderSpan(words: Array<Word | AnchorWord>): string {
 
 	function getStyleSheet(w: Word) {
 		const props: string[] = []
-		if (w.foreground) props.push("color: " + w.foreground)
-		if (w.background) props.push("background-color: " + w.background)
-		if (w.bold) props.push("font-weight: 700")
+		if (w.foreground) props.push("color:" + w.foreground)
+		if (w.background) props.push("background-color:" + w.background)
+		if (w.bold) props.push("font-weight:700")
 		if (w.underline || w.strike) {
 			const values: string[] = []
 			if (w.underline) values.push("underline")
 			if (w.strike) values.push("line-through")
-			props.push("text-decoration: " + values.join(" "))
+			props.push("text-decoration:" + values.join(" "))
 		}
-		if (w.italic) props.push("font-style: italic")
-		if (w.hidden) props.push("opacity: 0")
+		if (w.italic) props.push("font-style:italic")
+		if (w.hidden) props.push("opacity:0")
 		return props.join(";")
 	}
 
@@ -232,7 +232,7 @@ function demoTemplate(
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>ANSI Demo</title>
 		<style>
-pre#demo a {
+pre#demo #app {
 	text-decoration: none;
 }
 pre#demo:hover #app {
