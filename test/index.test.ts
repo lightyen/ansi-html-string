@@ -34,7 +34,13 @@ it("start with CSI", () => {
 it("endurance failure", () => {
 	const toHtml = createToHtml(options)
 	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")
+	expect(toHtml(`hello\x1b[??2Jhelloworld\x1b[m`)).toEqual("hellohelloworld")
+	expect(toHtml(`\x1b[35?35mhello\x1b[m`)).toEqual("hello")
+	expect(toHtml(`\x1b[30$?!;;;;;hello\x1b[m`)).toEqual("ello")
+	expect(toHtml(`hello\x1b[?0001J\x1b[m'`)).toEqual("")
+	expect(toHtml(`hello\x1b[?,002J\x1b[m'`)).toEqual("hello")
 	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#D34F56">helloworld</span>')
+	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#D34F56">;mhelloworld</span>')
 })
 
 it("hyperlink", () => {
