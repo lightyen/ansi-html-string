@@ -83,9 +83,9 @@ exports[`render with classes 1`] = `
 .ansi-fg-inverse { color: initial }
 .ansi-bg-inverse { background-color: initial }
 .ansi-bold { font-weight: 700 }
-.ansi-underline { text-decoration: underline dotted }
+.ansi-underline { text-decoration: underline }
 .ansi-strike { text-decoration: line-through }
-.ansi-underline.ansi-strike { text-decoration: underline dotted line-through }
+.ansi-underline.ansi-strike { text-decoration: underline line-through }
 .ansi-italic { font-style:italic }
 .ansi-hidden { opacity: 0 }
 .ansi-link { color: initial; text-decoration: none }

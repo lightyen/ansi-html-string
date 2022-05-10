@@ -318,9 +318,9 @@ ${base()}
 .ansi-fg-inverse { color: ${background} }
 .ansi-bg-inverse { background-color: ${foreground} }
 .ansi-bold { font-weight: 700 }
-.ansi-underline { text-decoration: underline dotted }
+.ansi-underline { text-decoration: underline }
 .ansi-strike { text-decoration: line-through }
-.ansi-underline.ansi-strike { text-decoration: underline dotted line-through }
+.ansi-underline.ansi-strike { text-decoration: underline line-through }
 .ansi-italic { font-style:italic }
 .ansi-hidden { opacity: 0 }
 .ansi-link { color: ${foreground}; text-decoration: none }
