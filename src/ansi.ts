@@ -1,5 +1,19 @@
-import { ANSI, isNumber, isPrintable, SGR } from "./code"
+import { ANSI, isNumber, isPrintable, isSoft, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, ThemeConfig, toCss, toRgb } from "./colors"
+
+export interface Attributes {
+	fgIndexOrRgb: number
+	bgIndexOrRgb: number
+	fgMode: ColorMode
+	bgMode: ColorMode
+	bold: boolean
+	dim: boolean
+	underline: boolean
+	inverse: boolean
+	italic: boolean
+	strike: boolean
+	hidden: boolean
+}
 
 export interface Word {
 	fgMode: ColorMode
@@ -33,22 +47,11 @@ export interface Options {
 
 const defaultMinimumContrastRatio = 3
 
-export interface Context {
+export interface Context extends Attributes {
 	contrastCache: ContrastCache
 	minimumContrastRatio: number
 	mode: "inline" | "class"
 	palette: ReturnType<typeof createPalette>
-	fgIndexOrRgb: number
-	bgIndexOrRgb: number
-	fgMode: ColorMode
-	bgMode: ColorMode
-	bold: boolean
-	dim: boolean
-	underline: boolean
-	inverse: boolean
-	italic: boolean
-	strike: boolean
-	hidden: boolean
 }
 
 export function createContext({
@@ -347,227 +350,175 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
-	function getNumber(a: number, b: number): number {
-		let ans = 0
-		for (let k = a; k < b; k++) ans = 10 * ans + rawText.charCodeAt(k) - ANSI._0
-		return ans
-	}
-
 	/** @return last index */
 	function readCSI(index: number): number {
 		if (index >= rawText.length) return index
-
-		// format: CSI memo # end
-		// memo: <, =, ... or null
-		// #: 1;2;3;4 ...
-		// end: s, r, m, $p, ... (non-null)
-
-		let a = index
 		let b = index
-		let memo: ANSI | null = ANSI.Undefined
-		let invalid = false
-		const valueIndices: number[] = []
-
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
-			if (!isPrintable(char)) return b
-
-			if (Number.isNaN(memo)) {
-				switch (char) {
-					case ANSI.LessThan:
-					case ANSI.Equal:
-					case ANSI.GreaterThan:
-					case ANSI.Question:
-					case ANSI.SingleQuote:
-					case ANSI.Exclamation:
-						memo = char
-						b++
-						a = b
-						break
-					default:
-						memo = null
-				}
-				continue
+			if (!isPrintable(char)) {
+				handle(index, b)
+				return b
 			}
-
-			const e = end(char, b)
-			if (e > 0) return e
-
-			if (e === -2) {
-				b++
-				continue
+			if (!isSoft(char)) {
+				handle(index, b + 1)
+				return b + 1
 			}
-
-			eatNum()
 			b++
-			a = b
 		}
 		return b
 
-		function eatNum(checkLength = false) {
-			if (a < b) {
-				valueIndices.push(a, b)
-			} else if (checkLength) {
-				invalid = true
+		function handle(a: number, b: number): void {
+			b--
+			const lastChar = rawText.charCodeAt(b)
+			switch (lastChar) {
+				case ANSI.m:
+					{
+						const attrs: number[] = []
+						let i = a
+						while (i < b) {
+							const c = rawText.charCodeAt(i)
+							if (c === ANSI.SemiColon) {
+								attrs.push(getNumber(a, i))
+								i++
+								a = i
+							} else if (isNumber(c)) {
+								i++
+							} else {
+								// failed
+								return
+							}
+						}
+						attrs.push(getNumber(a, i))
+						setAttributes(attrs)
+					}
+					break
+				case ANSI.J:
+					{
+						if (rawText.charCodeAt(a) === ANSI.Question) a++
+						let i = a
+						while (i < b) {
+							const c = rawText.charCodeAt(i)
+							if (isNumber(c)) {
+								i++
+							} else {
+								// failed
+								return
+							}
+						}
+						const v = getNumber(a, i)
+						if (v === 1 || v === 2) words.splice(0)
+					}
+
+					break
 			}
 		}
 
-		function end(lastChar: number, currentIndex: number): number {
-			if (isNumber(lastChar)) {
-				return -2
+		function getNumber(a: number, b: number): number {
+			let ans = 0
+			for (let k = a; k < b; k++) {
+				ans = 10 * ans + rawText.charCodeAt(k) - ANSI._0
 			}
+			return ans
+		}
 
-			if (memo === null) {
-				switch (lastChar) {
-					case ANSI.m:
-						eatNum(true)
-						if (invalid) {
-							resetAttributes()
-						} else {
-							setAttribute(valueIndices)
-						}
-						return currentIndex + 1
-					case ANSI.J: {
-						eatNum(true)
-						const values: number[] = []
-						for (let i = 0; i < valueIndices.length; i += 2)
-							values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
-						if (values.length === 1 && (values[0] === 1 || values[0] === 2)) words.splice(0)
-						return currentIndex + 1
-					}
-					case ANSI.At:
-					case ANSI.A:
-					case ANSI.B:
-					case ANSI.C:
-					case ANSI.D:
-					case ANSI.E:
-					case ANSI.F:
-					case ANSI.G:
-					case ANSI.H:
-					case ANSI.I:
-					case ANSI.K:
-					case ANSI.L:
-					case ANSI.M:
-					case ANSI.P:
-					case ANSI.S:
-					case ANSI.T:
-					case ANSI.X:
-					case ANSI.Z:
-					case ANSI.Backstick:
-					case ANSI.a:
-					case ANSI.b: // case ANSI.c:
-					case ANSI.d:
-					case ANSI.e:
-					case ANSI.f:
-					case ANSI.g:
-					case ANSI.h:
-					case ANSI.i:
-					case ANSI.j:
-					case ANSI.k:
-					case ANSI.n:
-					case ANSI.r:
-					case ANSI.s:
-					case ANSI.t:
-					case ANSI.u:
-						// eatNum(true)
-						return currentIndex + 1
-					case ANSI.Space:
-						switch (lastChar) {
-							case ANSI.q:
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.DoubleQuote:
-						switch (lastChar) {
-							case ANSI.p:
-							case ANSI.q:
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.Dollar:
-						switch (lastChar) {
-							case ANSI.p:
-							case ANSI.z:
-							case ANSI.LeftCurlyBracket:
-							case ANSI.RightCurlyBracket:
-							case ANSI.Tilde:
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.SingleQuote:
-						switch (lastChar) {
-							case ANSI.w:
-							case ANSI.z:
-							case ANSI.LeftCurlyBracket:
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
+		function resetAttributes() {
+			ctx.fgIndexOrRgb = -1
+			ctx.bgIndexOrRgb = -1
+			ctx.fgMode = ColorMode.DEFAULT
+			ctx.bgMode = ColorMode.DEFAULT
+			ctx.bold = false
+			ctx.dim = false
+			ctx.italic = false
+			ctx.underline = false
+			ctx.inverse = false
+			ctx.hidden = false
+			ctx.strike = false
+		}
+
+		function setAttributes(attrs: number[]) {
+			for (let i = 0; i < attrs.length; i++) {
+				const code = attrs[i]
+				switch (code) {
+					case SGR.Reset:
+						resetAttributes()
+						break
+					case SGR.Bold:
+						ctx.bold = true
+						break
+					case SGR.Dim:
+						ctx.dim = true
+						break
+					case SGR.Italic:
+						ctx.italic = true
+						break
+					case SGR.Underline:
+						ctx.underline = true
+						break
+					case SGR.Inverse:
+						ctx.inverse = true
+						break
+					case SGR.Hidden:
+						ctx.hidden = true
+						break
+					case SGR.Strike:
+						ctx.strike = true
+						break
+					case SGR.SlowBlink:
+						break
+					case SGR.RapidBlink:
+						break
 				}
-			} else if (lastChar !== ANSI.SemiColon) {
-				switch (memo) {
-					case ANSI.LessThan:
-						switch (lastChar) {
-							case ANSI.r:
-							case ANSI.s:
-							case ANSI.t:
-								// eatNum(true)
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.Equal:
-						switch (lastChar) {
-							case ANSI.c:
-								// eatNum(true)
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.GreaterThan:
-						switch (lastChar) {
-							case ANSI.c:
-							case ANSI.J:
-							case ANSI.K:
-								// eatNum(true)
-								return currentIndex + 1
-							default:
-								return currentIndex
-						}
-					case ANSI.Question:
-						eatNum(true)
-						switch (lastChar) {
-							case ANSI.J: {
-								const values: number[] = []
-								for (let i = 0; i < valueIndices.length; i += 2)
-									values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
-								if (values.length === 1 && (values[0] === 1 || values[0] === 2)) words.splice(0)
-								return currentIndex + 1
-							}
-							case ANSI.K:
-							case ANSI.h:
-							case ANSI.i:
-							case ANSI.l:
-							case ANSI.n:
-								return currentIndex + 1
-							case ANSI.Dollar:
-								if (rawText.charCodeAt(currentIndex) === ANSI.p) return currentIndex + 1
-								return currentIndex
-							default:
-								return currentIndex
-						}
-					case ANSI.SingleQuote:
-						if (lastChar === ANSI.LeftCurlyBracket) return currentIndex + 1
-						return currentIndex
-					case ANSI.Exclamation:
-						if (lastChar === ANSI.p) return currentIndex + 1
-						return currentIndex
+				if (code >= SGR.FgBlack && code <= SGR.FgWhite) {
+					ctx.fgIndexOrRgb = code - SGR.FgBlack
+					ctx.fgMode = ColorMode.P16
+				} else if (code >= SGR.BgBlack && code <= SGR.BgWhite) {
+					ctx.bgIndexOrRgb = code - SGR.BgBlack
+					ctx.bgMode = ColorMode.P16
+				} else if (code >= SGR.BrightFgGray && code <= SGR.BrightFgWhite) {
+					ctx.fgIndexOrRgb = 8 + code - SGR.BrightFgGray
+					ctx.fgMode = ColorMode.P16
+				} else if (code >= SGR.BrightBgGray && code <= SGR.BrightBgWhite) {
+					ctx.bgIndexOrRgb = 8 + code - SGR.BrightBgGray
+					ctx.bgMode = ColorMode.P16
+				} else if (code === SGR.FgReset) {
+					ctx.fgIndexOrRgb = -1
+					ctx.fgMode = ColorMode.DEFAULT
+				} else if (code === SGR.BgReset) {
+					ctx.bgIndexOrRgb = -1
+					ctx.bgMode = ColorMode.DEFAULT
+				} else if (code === SGR.FgExt) {
+					if (attrs[i + 1] === 5) {
+						if (i + 2 >= attrs.length) break
+						ctx.fgIndexOrRgb = attrs[i + 2]
+						ctx.fgMode = ColorMode.P256
+						i += 2
+					} else if (attrs[i + 1] === 2) {
+						if (i + 4 >= attrs.length) break
+						const r = attrs[i + 2]
+						const g = attrs[i + 3]
+						const b = attrs[i + 4]
+						ctx.fgIndexOrRgb = toRgb(r, g, b)
+						ctx.fgMode = ColorMode.RGB
+						i += 4
+					}
+				} else if (code === SGR.BgExt) {
+					if (attrs[i + 1] === 5) {
+						if (i + 2 >= attrs.length) break
+						ctx.bgIndexOrRgb = attrs[i + 2]
+						ctx.bgMode = ColorMode.P256
+						i += 2
+					} else if (attrs[i + 1] === 2) {
+						if (i + 4 >= attrs.length) break
+						const r = attrs[i + 2]
+						const g = attrs[i + 3]
+						const b = attrs[i + 4]
+						ctx.bgIndexOrRgb = toRgb(r, g, b)
+						ctx.bgMode = ColorMode.RGB
+						i += 4
+					}
 				}
 			}
-			return -1
 		}
 	}
 
@@ -659,114 +610,6 @@ export function parseWithContext(ctx: Context, rawText: string) {
 				}
 			})
 			return result
-		}
-	}
-
-	function resetAttributes() {
-		ctx.fgIndexOrRgb = -1
-		ctx.bgIndexOrRgb = -1
-		ctx.fgMode = ColorMode.DEFAULT
-		ctx.bgMode = ColorMode.DEFAULT
-		ctx.bold = false
-		ctx.dim = false
-		ctx.italic = false
-		ctx.underline = false
-		ctx.inverse = false
-		ctx.hidden = false
-		ctx.strike = false
-	}
-
-	function setAttribute(attributes: number[]) {
-		if (attributes.length === 0) {
-			resetAttributes()
-			return
-		}
-		const attrs: number[] = []
-		for (let i = 0; i < attributes.length; i += 2) {
-			attrs.push(getNumber(attributes[i], attributes[i + 1]))
-		}
-
-		for (let i = 0; i < attrs.length; i++) {
-			const code = attrs[i]
-			switch (code) {
-				case SGR.Reset:
-					resetAttributes()
-					break
-				case SGR.Bold:
-					ctx.bold = true
-					break
-				case SGR.Dim:
-					ctx.dim = true
-					break
-				case SGR.Italic:
-					ctx.italic = true
-					break
-				case SGR.Underline:
-					ctx.underline = true
-					break
-				case SGR.Inverse:
-					ctx.inverse = true
-					break
-				case SGR.Hidden:
-					ctx.hidden = true
-					break
-				case SGR.Strike:
-					ctx.strike = true
-					break
-				case SGR.SlowBlink:
-					break
-				case SGR.RapidBlink:
-					break
-			}
-			if (code >= SGR.FgBlack && code <= SGR.FgWhite) {
-				ctx.fgIndexOrRgb = code - SGR.FgBlack
-				ctx.fgMode = ColorMode.P16
-			} else if (code >= SGR.BgBlack && code <= SGR.BgWhite) {
-				ctx.bgIndexOrRgb = code - SGR.BgBlack
-				ctx.bgMode = ColorMode.P16
-			} else if (code >= SGR.BrightFgGray && code <= SGR.BrightFgWhite) {
-				ctx.fgIndexOrRgb = 8 + code - SGR.BrightFgGray
-				ctx.fgMode = ColorMode.P16
-			} else if (code >= SGR.BrightBgGray && code <= SGR.BrightBgWhite) {
-				ctx.bgIndexOrRgb = 8 + code - SGR.BrightBgGray
-				ctx.bgMode = ColorMode.P16
-			} else if (code === SGR.FgReset) {
-				ctx.fgIndexOrRgb = -1
-				ctx.fgMode = ColorMode.DEFAULT
-			} else if (code === SGR.BgReset) {
-				ctx.bgIndexOrRgb = -1
-				ctx.bgMode = ColorMode.DEFAULT
-			} else if (code === SGR.FgExt) {
-				if (attrs[i + 1] === 5) {
-					if (i + 2 >= attrs.length) break
-					ctx.fgIndexOrRgb = attrs[i + 2]
-					ctx.fgMode = ColorMode.P256
-					i += 2
-				} else if (attrs[i + 1] === 2) {
-					if (i + 4 >= attrs.length) break
-					const r = attrs[i + 2]
-					const g = attrs[i + 3]
-					const b = attrs[i + 4]
-					ctx.fgIndexOrRgb = toRgb(r, g, b)
-					ctx.fgMode = ColorMode.RGB
-					i += 4
-				}
-			} else if (code === SGR.BgExt) {
-				if (attrs[i + 1] === 5) {
-					if (i + 2 >= attrs.length) break
-					ctx.bgIndexOrRgb = attrs[i + 2]
-					ctx.bgMode = ColorMode.P256
-					i += 2
-				} else if (attrs[i + 1] === 2) {
-					if (i + 4 >= attrs.length) break
-					const r = attrs[i + 2]
-					const g = attrs[i + 3]
-					const b = attrs[i + 4]
-					ctx.bgIndexOrRgb = toRgb(r, g, b)
-					ctx.bgMode = ColorMode.RGB
-					i += 4
-				}
-			}
 		}
 	}
 }

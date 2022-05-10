@@ -207,3 +207,7 @@ export function isNumber(charCode: number) {
 export function isPrintable(charCode: number) {
 	return (charCode > 0x1f && charCode < 0x7f) || charCode > 0xff
 }
+
+export function isSoft(printable_char: number) {
+	return printable_char >= 0x20 && printable_char < 0x40
+}
