@@ -1,4 +1,4 @@
-import { AnchorWord, Context, createContext, Options as BaseOptions, parseWithContext, Word } from "./ansi"
+import { AnchorWord, Context, createContext, Options, parseWithContext, Word } from "./ansi"
 
 function isWord(w: Word | AnchorWord | undefined): w is Word {
 	return !!w && !w["url"]
@@ -68,11 +68,7 @@ function merge(words: Array<Word | AnchorWord>) {
 	}
 }
 
-interface RenderSpanOptions {
-	rel?: string
-}
-
-function renderSpan(words: Array<Word | AnchorWord>, { rel = "" }: RenderSpanOptions = {}): string {
+function renderSpan(words: Array<Word | AnchorWord>): string {
 	let result = ""
 	for (let i = 0; i < words.length; i++) {
 		const w = words[i]
@@ -129,21 +125,15 @@ function renderSpan(words: Array<Word | AnchorWord>, { rel = "" }: RenderSpanOpt
 
 let cache: Context | undefined
 
-function getContext(options?: BaseOptions): Context {
+function getContext(options?: Options): Context {
 	if (cache && options == undefined) return cache
 	cache = createContext(options)
 	return cache
 }
 
-interface Options extends BaseOptions {
-	anchor?: RenderSpanOptions
-}
-
 export function toHtml(ansiText: string, options?: Options) {
-	const anchor = options?.anchor
-	delete options?.anchor
 	const ctx = getContext(options)
-	return renderSpan(merge(parseWithContext(ctx, ansiText)), anchor)
+	return renderSpan(merge(parseWithContext(ctx, ansiText)))
 }
 
 const debugText = `	Standard colors:
@@ -262,10 +252,8 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 	delete options?.fontSize
 	const fontFamily = options?.fontFamily || "initial"
 	delete options?.fontFamily
-	const anchor = options?.anchor
-	delete options?.anchor
 	const background = options?.theme?.background || "initial"
-	return demoTemplate(renderSpan(merge(parseWithContext(getContext(options), rawText)), anchor), {
+	return demoTemplate(renderSpan(merge(parseWithContext(getContext(options), rawText))), {
 		background,
 		fontSize,
 		fontFamily,
@@ -273,10 +261,8 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 }
 
 export function createToHtml(options?: Options) {
-	const anchor = options?.anchor
-	delete options?.anchor
 	const ctx = createContext(options)
-	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)), anchor)
+	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)))
 }
 
 export function createToDemo(options?: Options & DemoOptions) {
@@ -284,12 +270,10 @@ export function createToDemo(options?: Options & DemoOptions) {
 	delete options?.fontSize
 	const fontFamily = options?.fontFamily || "initial"
 	delete options?.fontFamily
-	const anchor = options?.anchor
-	delete options?.anchor
 	const background = options?.theme?.background || "initial"
 	const ctx = createContext(options)
 	return (ansiText: string) =>
-		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText)), anchor), {
+		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText))), {
 			background,
 			fontSize,
 			fontFamily,
