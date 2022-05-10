@@ -419,18 +419,8 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					switch (lastChar) {
 						case ANSI.m:
 							eatNum()
-							ctx.strike = false
 							if (invalid) {
-								ctx.fgIndexOrRgb = -1
-								ctx.bgIndexOrRgb = -1
-								ctx.fgMode = ColorMode.DEFAULT
-								ctx.bgMode = ColorMode.DEFAULT
-								ctx.bold = false
-								ctx.dim = false
-								ctx.italic = false
-								ctx.underline = false
-								ctx.inverse = false
-								ctx.hidden = false
+								resetAttributes()
 							} else {
 								setAttribute(valueIndices)
 							}
@@ -663,18 +653,23 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
+	function resetAttributes() {
+		ctx.fgIndexOrRgb = -1
+		ctx.bgIndexOrRgb = -1
+		ctx.fgMode = ColorMode.DEFAULT
+		ctx.bgMode = ColorMode.DEFAULT
+		ctx.bold = false
+		ctx.dim = false
+		ctx.italic = false
+		ctx.underline = false
+		ctx.inverse = false
+		ctx.hidden = false
+		ctx.strike = false
+	}
+
 	function setAttribute(attributes: number[]) {
 		if (attributes.length === 0) {
-			ctx.fgIndexOrRgb = -1
-			ctx.bgIndexOrRgb = -1
-			ctx.fgMode = ColorMode.DEFAULT
-			ctx.bgMode = ColorMode.DEFAULT
-			ctx.bold = false
-			ctx.dim = false
-			ctx.italic = false
-			ctx.underline = false
-			ctx.inverse = false
-			ctx.hidden = false
+			resetAttributes()
 			return
 		}
 		const attrs: number[] = []
@@ -686,17 +681,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			const code = attrs[i]
 			switch (code) {
 				case SGR.Reset:
-					ctx.fgIndexOrRgb = -1
-					ctx.bgIndexOrRgb = -1
-					ctx.fgMode = ColorMode.DEFAULT
-					ctx.bgMode = ColorMode.DEFAULT
-					ctx.bold = false
-					ctx.dim = false
-					ctx.italic = false
-					ctx.underline = false
-					ctx.inverse = false
-					ctx.hidden = false
-					ctx.strike = false
+					resetAttributes()
 					break
 				case SGR.Bold:
 					ctx.bold = true
