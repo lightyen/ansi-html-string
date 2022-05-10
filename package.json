@@ -13,7 +13,8 @@
   },
   "keywords": [
     "ansi",
-    "html"
+    "html",
+    "converter"
   ],
   "author": "lightyen",
   "license": "MIT",
