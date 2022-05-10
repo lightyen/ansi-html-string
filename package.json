@@ -20,7 +20,7 @@
   "repository": {
     "url": "https://github.com/lightyen/ansi-html-string"
   },
-  "homepage": "https://github.com/lightyen/ansi-html-string/blob/main#readme",
+  "homepage": "https://github.com/lightyen/ansi-html-string#readme",
   "files": [
     "lib",
     "types",
