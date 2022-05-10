@@ -28,7 +28,7 @@ it("hyperlink", () => {
 	const toHtml = createToHtml(options)
 	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
 	expect(toHtml(rawText)).toEqual(
-		'he<span style="color:#D34F56">llo</span><a href="http://example.com" id="app"><span style="color:#D34F56">This is </span></a><a href="http://example.com" id="app" rel="noopener noreferrer"><span style="color:#D34F56">a </span><span style="color:#7CA7D8">link</span></a><span style="color:#7CA7D8">world</span>',
+		'he<span style="color:#D34F56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#D34F56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#D34F56">a </span><span style="color:#7CA7D8">link</span></a><span style="color:#7CA7D8">world</span>',
 	)
 })
 
@@ -38,8 +38,7 @@ it("clear", () => {
 	expect(toHtml(rawText)).toEqual("helloworld")
 })
 
-it("render", () => {
-	const text = `MacroError:
+const demoText = `MacroError:
 src/AppMain.tsx
 
 \x1b[38;2;255;131;131m&#10005; \x1b[38;2;255;211;211mbg-indigoa-400\x1b[39m\x1b[38;2;255;131;131m was not found\x1b[39m
@@ -57,7 +56,15 @@ Try one of these classes:
 	\x1b[48;5;8m  \x1b[48;5;9m  \x1b[48;5;10m  \x1b[48;5;11m  \x1b[48;5;12m  \x1b[48;5;13m  \x1b[48;5;14m  \x1b[48;5;15m  \x1b[0m
 
 `
+
+it("render", () => {
 	const toDemo = createToDemo(options)
-	const output = toDemo(text)
+	const output = toDemo(demoText)
+	expect(output).toMatchSnapshot()
+})
+
+it("render with classes", () => {
+	const toDemo = createToDemo({ ...options, mode: "class" })
+	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
 })

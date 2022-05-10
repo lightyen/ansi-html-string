@@ -2,7 +2,9 @@ import { ANSI, isNumber, isPrintable, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, ThemeConfig, toCss, toRgb } from "./colors"
 
 export interface Word {
+	fgMode: ColorMode
 	foreground?: string
+	bgMode: ColorMode
 	background?: string
 	bold: boolean
 	underline: boolean
@@ -21,6 +23,8 @@ export interface AnchorWord {
 export interface Options {
 	/** minimum contrast ratio: 1 - 21 (default: 3) */
 	minimumContrastRatio?: number
+	/** mode (default: inline) */
+	mode?: "inline" | "class"
 	/** user theme */
 	theme?: ThemeConfig
 }
@@ -32,6 +36,7 @@ const defaultMinimumContrastRatio = 3
 export interface Context {
 	contrastCache: ContrastCache
 	minimumContrastRatio: number
+	mode: "inline" | "class"
 	palette: ReturnType<typeof createPalette>
 	fgIndexOrRgb: number
 	bgIndexOrRgb: number
@@ -46,10 +51,15 @@ export interface Context {
 	hidden: boolean
 }
 
-export function createContext({ minimumContrastRatio = defaultMinimumContrastRatio, theme }: Options = {}): Context {
+export function createContext({
+	minimumContrastRatio = defaultMinimumContrastRatio,
+	mode = "inline",
+	theme,
+}: Options = {}): Context {
 	return {
 		contrastCache: new ContrastCache(),
 		minimumContrastRatio,
+		mode,
 		palette: createPalette(theme),
 		fgIndexOrRgb: -1,
 		bgIndexOrRgb: -1,
@@ -138,9 +148,24 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			bgMode = tmp
 		}
 
+		if (fgMode === ColorMode.P256 && fgColor < 16) fgMode = ColorMode.P16
+		if (bgMode === ColorMode.P256 && bgColor < 16) bgMode = ColorMode.P16
+
+		const foreground =
+			ctx.mode === "class" && fgMode !== ColorMode.RGB
+				? getForegroundClass(fgMode, fgColor, ctx.inverse, ctx.bold)
+				: getForegroundCss(bgMode, bgColor, fgMode, fgColor, ctx.inverse, ctx.bold)
+
+		const background =
+			ctx.mode === "class" && bgMode !== ColorMode.RGB
+				? getBackgroundClass(bgMode, bgColor, ctx.inverse)
+				: getBackgroundCss(bgMode, bgColor, ctx.inverse)
+
 		const word: Word = {
-			foreground: getForegroundCss(bgMode, bgColor, fgMode, fgColor, ctx.inverse, ctx.bold),
-			background: getBackgroundCss(bgMode, bgColor, ctx.inverse),
+			fgMode,
+			foreground,
+			bgMode,
+			background,
 			bold: ctx.bold || ctx.dim,
 			underline: ctx.underline,
 			italic: ctx.italic,
@@ -190,6 +215,40 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			default:
 				if (inverse) return ctx.palette.foreground?.css
 				return ctx.palette.background?.css
+		}
+	}
+
+	function getForegroundClass(
+		fgColorMode: ColorMode,
+		fgIndexOrRgb: number,
+		inverse: boolean,
+		bold: boolean,
+	): string | undefined | never {
+		switch (fgColorMode) {
+			case ColorMode.P16:
+			case ColorMode.P256:
+				if (bold && fgIndexOrRgb < 8) fgIndexOrRgb += 8
+				return `${fgIndexOrRgb}`
+			case ColorMode.DEFAULT:
+			default:
+				if (inverse) return "default-inverse"
+				return undefined
+		}
+	}
+
+	function getBackgroundClass(
+		bgColorMode: ColorMode,
+		bgIndexOrRgb: number,
+		inverse: boolean,
+	): string | undefined | never {
+		switch (bgColorMode) {
+			case ColorMode.P16:
+			case ColorMode.P256:
+				return `${bgIndexOrRgb}`
+			case ColorMode.DEFAULT:
+			default:
+				if (inverse) return "bg-inverse"
+				return undefined
 		}
 	}
 

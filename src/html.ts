@@ -1,4 +1,5 @@
 import { AnchorWord, Context, createContext, Options, parseWithContext, Word } from "./ansi"
+import { ColorMode } from "./colors"
 
 function isWord(w: Word | AnchorWord | undefined): w is Word {
 	return !!w && !w["url"]
@@ -68,24 +69,25 @@ function merge(words: Array<Word | AnchorWord>) {
 	}
 }
 
-function renderSpan(words: Array<Word | AnchorWord>): string {
+function renderSpan(words: Array<Word | AnchorWord>, mode: "inline" | "class" = "inline"): string {
+	const classPrefix = "ansi-"
 	let result = ""
 	for (let i = 0; i < words.length; i++) {
 		const w = words[i]
 		if (isWord(w)) {
-			if (isStyled(w)) {
-				result += `<span style="${getStyleSheet(w)}">${w.value}</span>`
+			if (isSpan(w)) {
+				result += `<span ${getAttributes(w)}>${w.value}</span>`
 			} else {
 				result += w.value
 			}
 		} else {
-			result += `<a href="${w.url}" ${getParams(w)}>${renderSpan(w.words)}</a>`
+			result += `<a ${getAnchorAttributes(w)}>${renderSpan(w.words)}</a>`
 		}
 	}
 
 	return result
 
-	function isStyled(w: Word) {
+	function isSpan(w: Word) {
 		return (
 			w.foreground != undefined ||
 			w.background != undefined ||
@@ -97,24 +99,51 @@ function renderSpan(words: Array<Word | AnchorWord>): string {
 		)
 	}
 
-	function getStyleSheet(w: Word) {
-		const props: string[] = []
-		if (w.foreground) props.push("color:" + w.foreground)
-		if (w.background) props.push("background-color:" + w.background)
-		if (w.bold) props.push("font-weight:700")
-		if (w.underline || w.strike) {
-			const values: string[] = []
-			if (w.underline) values.push("underline")
-			if (w.strike) values.push("line-through")
-			props.push("text-decoration:" + values.join(" "))
+	function getAttributes(w: Word) {
+		const attrs: Record<string, string> = {}
+		if (mode === "class") {
+			const classes: string[] = []
+			const props: string[] = []
+			if (w.foreground) {
+				if (w.fgMode !== ColorMode.RGB) {
+					classes.push(classPrefix + "fg-" + w.foreground)
+				} else props.push("color:" + w.foreground)
+			}
+			if (w.background) {
+				if (w.bgMode !== ColorMode.RGB) {
+					classes.push(classPrefix + "bg-" + w.background)
+				} else props.push("background-color:" + w.background)
+			}
+			if (w.bold) classes.push(classPrefix + "bold")
+			if (w.underline) classes.push(classPrefix + "underline")
+			if (w.strike) classes.push(classPrefix + "strike")
+			if (w.italic) classes.push(classPrefix + "italic")
+			if (w.hidden) classes.push(classPrefix + "hidden")
+			if (classes.length > 0) attrs["class"] = classes.join(" ")
+			if (props.length > 0) attrs["style"] = props.join(";")
+		} else {
+			const props: string[] = []
+			if (w.foreground) props.push("color:" + w.foreground)
+			if (w.background) props.push("background-color:" + w.background)
+			if (w.bold) props.push("font-weight:700")
+			if (w.underline || w.strike) {
+				const values: string[] = []
+				if (w.underline) values.push("underline")
+				if (w.strike) values.push("line-through")
+				props.push("text-decoration:" + values.join(" "))
+			}
+			if (w.italic) props.push("font-style:italic")
+			if (w.hidden) props.push("opacity:0")
+			if (props.length > 0) attrs["style"] = props.join(";")
 		}
-		if (w.italic) props.push("font-style:italic")
-		if (w.hidden) props.push("opacity:0")
-		return props.join(";")
+
+		return Object.entries(attrs)
+			.map(([key, value]) => `${key}="${value}"`)
+			.join(" ")
 	}
 
-	function getParams(w: AnchorWord): string {
-		const attrs: string[] = []
+	function getAnchorAttributes(w: AnchorWord): string {
+		const attrs: string[] = [`href="${w.url}"`, 'class="ansi-link"']
 		// put all params
 		for (const key in w.params) {
 			attrs.push(`${key}="${w.params[key]}"`)
@@ -133,7 +162,7 @@ function getContext(options?: Options): Context {
 
 export function toHtml(ansiText: string, options?: Options) {
 	const ctx = getContext(options)
-	return renderSpan(merge(parseWithContext(ctx, ansiText)))
+	return renderSpan(merge(parseWithContext(ctx, ansiText)), ctx.mode)
 }
 
 const debugText = `	Standard colors:
@@ -223,7 +252,13 @@ interface DemoOptions {
 
 function demoTemplate(
 	content: string,
-	{ background, fontSize, fontFamily }: { background: string; fontSize: string; fontFamily: string },
+	{
+		foreground,
+		background,
+		fontSize,
+		fontFamily,
+		mode,
+	}: { foreground: string; background: string; fontSize: string; fontFamily: string; mode: "inline" | "class" },
 ) {
 	return `<!DOCTYPE html>
 <html lang="en">
@@ -232,18 +267,65 @@ function demoTemplate(
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>ANSI Demo</title>
 		<style>
-pre#demo #app {
-	text-decoration: none;
+${base()}
+.ansi-link {
+	text-decoration: underline dotted;
 }
-pre#demo:hover #app {
+.ansi-link:hover {
 	text-decoration: underline;
 }
 		</style>
 	</head>
-	<body style="background: ${background}">
+	<body style="color:${foreground};background-color:${background}">
 		<pre id="demo" style="font-size: ${fontSize}; font-family: ${fontFamily}">${content}</pre>
 	</body>
 </html>`
+
+	function base() {
+		if (mode !== "class") return ""
+		return `.ansi-fg-0 { color: #3f4451 }
+.ansi-fg-1 { color: #e05561 }
+.ansi-fg-2 { color: #8cc265 }
+.ansi-fg-3 { color: #d18f52 }
+.ansi-fg-4 { color: #4aa5f0 }
+.ansi-fg-5 { color: #c162de }
+.ansi-fg-6 { color: #42b3c2 }
+.ansi-fg-7 { color: #e6e6e6 }
+.ansi-fg-8 { color: #4f5666 }
+.ansi-fg-9 { color: #ff616e }
+.ansi-fg-10 { color: #a5e075 }
+.ansi-fg-11 { color: #f0a45d }
+.ansi-fg-12 { color: #4dc4ff }
+.ansi-fg-13 { color: #de73ff }
+.ansi-fg-14 { color: #4cd1e0 }
+.ansi-bg-15 { color: #d7dae0 }
+.ansi-bg-0 { background-color: #3f4451 }
+.ansi-bg-1 { background-color: #e05561 }
+.ansi-bg-2 { background-color: #8cc265 }
+.ansi-bg-3 { background-color: #d18f52 }
+.ansi-bg-4 { background-color: #4aa5f0 }
+.ansi-bg-5 { background-color: #c162de }
+.ansi-bg-6 { background-color: #42b3c2 }
+.ansi-bg-7 { background-color: #e6e6e6 }
+.ansi-bg-8 { background-color: #4f5666 }
+.ansi-bg-9 { background-color: #ff616e }
+.ansi-bg-10 { background-color: #a5e075 }
+.ansi-bg-11 { background-color: #f0a45d }
+.ansi-bg-12 { background-color: #4dc4ff }
+.ansi-bg-13 { background-color: #de73ff }
+.ansi-bg-14 { background-color: #4cd1e0 }
+.ansi-bg-15 { background-color: #d7dae0 }
+.ansi-fg-inverse { color: ${background} }
+.ansi-bg-inverse { background-color: ${foreground} }
+.ansi-bold { font-weight: 700 }
+.ansi-underline { text-decoration: underline dotted }
+.ansi-strike { text-decoration: line-through }
+.ansi-underline.ansi-strike { text-decoration: underline dotted line-through }
+.ansi-italic { font-style:italic }
+.ansi-hidden { opacity: 0 }
+.ansi-link { color: ${foreground}; text-decoration: none }
+.ansi-link:hover { text-decoration: underline }`
+	}
 }
 
 export function toDemo(rawText: string | null | undefined, options?: Options & DemoOptions): string {
@@ -252,17 +334,21 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 	delete options?.fontSize
 	const fontFamily = options?.fontFamily || "initial"
 	delete options?.fontFamily
+	const foreground = options?.theme?.foreground || "initial"
 	const background = options?.theme?.background || "initial"
-	return demoTemplate(renderSpan(merge(parseWithContext(getContext(options), rawText))), {
+	const ctx = getContext(options)
+	return demoTemplate(renderSpan(merge(parseWithContext(ctx, rawText)), ctx.mode), {
+		foreground,
 		background,
 		fontSize,
 		fontFamily,
+		mode: ctx.mode,
 	})
 }
 
 export function createToHtml(options?: Options) {
 	const ctx = createContext(options)
-	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)))
+	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)), ctx.mode)
 }
 
 export function createToDemo(options?: Options & DemoOptions) {
@@ -270,12 +356,15 @@ export function createToDemo(options?: Options & DemoOptions) {
 	delete options?.fontSize
 	const fontFamily = options?.fontFamily || "initial"
 	delete options?.fontFamily
+	const foreground = options?.theme?.foreground || "initial"
 	const background = options?.theme?.background || "initial"
 	const ctx = createContext(options)
 	return (ansiText: string) =>
-		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText))), {
+		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText)), ctx.mode), {
+			foreground,
 			background,
 			fontSize,
 			fontFamily,
+			mode: ctx.mode,
 		})
 }
