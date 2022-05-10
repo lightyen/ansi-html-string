@@ -205,5 +205,5 @@ export function isNumber(charCode: number) {
 }
 
 export function isPrintable(charCode: number) {
-	return (charCode >= 32 && charCode < 127) || charCode >= 256
+	return (charCode > 0x1f && charCode < 0x7f) || charCode > 0xff
 }

@@ -2,7 +2,6 @@ import { ANSI, isNumber, isPrintable, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, ThemeConfig, toCss, toRgb } from "./colors"
 
 export interface Word {
-	value: string
 	foreground?: string
 	background?: string
 	bold: boolean
@@ -10,6 +9,13 @@ export interface Word {
 	italic: boolean
 	strike: boolean
 	hidden: boolean
+	value: string
+}
+
+export interface AnchorWord {
+	params: Record<string, string>
+	url: string
+	words: Word[]
 }
 
 export interface Options {
@@ -19,12 +25,30 @@ export interface Options {
 	theme?: ThemeConfig
 }
 
+// sdfsd<a>sdsd<span>sdfds</span></a>sdds
+
 const defaultMinimumContrastRatio = 3
 
-export function createContext({ minimumContrastRatio, theme }: Options = {}) {
+export interface Context {
+	contrastCache: ContrastCache
+	minimumContrastRatio: number
+	palette: ReturnType<typeof createPalette>
+	fgIndexOrRgb: number
+	bgIndexOrRgb: number
+	fgMode: ColorMode
+	bgMode: ColorMode
+	bold: boolean
+	underline: boolean
+	inverse: boolean
+	italic: boolean
+	strike: boolean
+	hidden: boolean
+}
+
+export function createContext({ minimumContrastRatio = defaultMinimumContrastRatio, theme }: Options = {}): Context {
 	return {
 		contrastCache: new ContrastCache(),
-		minimumContrastRatio: minimumContrastRatio ?? defaultMinimumContrastRatio,
+		minimumContrastRatio,
 		palette: createPalette(theme),
 		fgIndexOrRgb: -1,
 		bgIndexOrRgb: -1,
@@ -39,14 +63,15 @@ export function createContext({ minimumContrastRatio, theme }: Options = {}) {
 	}
 }
 
-export type Context = ReturnType<typeof createContext>
-
 export function parseWithContext(ctx: Context, rawText: string) {
-	const words: Word[] = []
+	const _words: Array<Word | AnchorWord> = []
 	const buffer: number[] = []
 
-	let a = 0,
-		b = 0
+	let a = 0
+	let b = 0
+	let words = _words
+	let anchor: AnchorWord | undefined
+
 	while (b < rawText.length) {
 		const char = rawText.charCodeAt(b)
 		if (isPrintable(char)) {
@@ -56,7 +81,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 
 		if (a < b) {
-			addWord(rawText.slice(a, b))
+			words.push(makeWord(rawText.slice(a, b)))
 			a = b
 		}
 		switch (char) {
@@ -88,11 +113,15 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
-	if (a < b) addWord(rawText.slice(a, b))
+	if (a < b) {
+		words.push(makeWord(rawText.slice(a, b)))
+	}
 
-	return words
+	if (anchor) _words.push(anchor)
 
-	function addWord(value: string) {
+	return _words
+
+	function makeWord(value: string): Word {
 		let fgColor = ctx.fgIndexOrRgb
 		let bgColor = ctx.bgIndexOrRgb
 		let fgMode = ctx.fgMode
@@ -107,8 +136,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			bgMode = tmp
 		}
 
-		const w: Word = {
-			value,
+		const word: Word = {
 			foreground: getForegroundCss(bgMode, bgColor, fgMode, fgColor, ctx.inverse, ctx.bold),
 			background: getBackgroundCss(bgMode, bgColor, ctx.inverse),
 			bold: ctx.bold,
@@ -116,9 +144,16 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			italic: ctx.italic,
 			strike: ctx.strike,
 			hidden: ctx.hidden,
+			value,
 		}
 
-		words.push(w)
+		// if (ctx.anchor) {
+		// 	word.anchor = {
+		// 		url: ctx.anchor.url,
+		// 		params: { ...ctx.anchor.params },
+		// 	}
+		// }
+		return word
 	}
 
 	function getForegroundCss(
@@ -419,8 +454,93 @@ export function parseWithContext(ctx: Context, rawText: string) {
 
 	/** @return last index */
 	function readOSC(index: number): number {
+		// format: OSC 8 ; params ; URI ST
+		// params format: id=xyz123:foo=bar:baz=quux
 		if (index >= rawText.length) return index
-		return index + 2
+		let mode: number = Number.NaN
+		let anchorMode = Number.NaN
+		let params: Record<string, string> = {}
+
+		let a = index
+		let b = index
+		while (b < rawText.length) {
+			const char = rawText.charCodeAt(b)
+			if (char === ANSI.ST || char === ANSI.BEL) {
+				if (anchor) {
+					_words.push(anchor)
+					anchor = undefined
+					words = _words
+				}
+				if (anchorMode === 1) {
+					const url = rawText.slice(a, b)
+					if (url) {
+						anchor = { url, params, words: [] }
+						words = anchor.words
+					}
+				}
+				return b + 1
+			}
+			if (char === ANSI.ESC && rawText.charCodeAt(b + 1) === ANSI.Backslash) {
+				if (anchor) {
+					_words.push(anchor)
+					anchor = undefined
+					words = _words
+				}
+				if (anchorMode === 1) {
+					const url = rawText.slice(a, b)
+					if (url) {
+						anchor = { url, params, words: [] }
+						words = anchor.words
+					}
+				}
+				return b + 2
+			}
+			if (!isPrintable(char)) return b
+			if (char !== ANSI.SemiColon) {
+				b++
+				continue
+			}
+
+			if (Number.isNaN(mode)) {
+				const value = parseInt(rawText.slice(a, b))
+				if (Number.isNaN(value)) mode = -1
+				else mode = value
+				b++
+				a = b
+				continue
+			}
+
+			switch (mode) {
+				case 8:
+					if (char !== ANSI.SemiColon) {
+						b++
+						continue
+					}
+					if (Number.isNaN(anchorMode)) {
+						params = getMap(rawText.slice(a, b))
+						anchorMode = 1
+						b++
+						a = b
+						continue
+					}
+					break
+				default:
+					b++
+					break
+			}
+		}
+		return b
+
+		function getMap(value: string) {
+			const result: Record<string, string> = {}
+			value.split(":").forEach(val => {
+				const i = val.indexOf("=")
+				if (i > 0) {
+					result[val.slice(0, i)] = val.slice(i + 1)
+				}
+			})
+			return result
+		}
 	}
 
 	function setAttribute(attributes: number[]) {

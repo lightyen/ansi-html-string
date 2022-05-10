@@ -1,6 +1,10 @@
-import { Context, createContext, Options, parseWithContext, Word } from "./ansi"
+import { AnchorWord, Context, createContext, Options as BaseOptions, parseWithContext, Word } from "./ansi"
 
-function merge(words: Word[]) {
+function isWord(w: Word | AnchorWord | undefined): w is Word {
+	return !!w && !w["url"]
+}
+
+function _merge(words: Word[]) {
 	type State = Omit<Word, "value">
 	if (words.length === 0) return words
 
@@ -42,13 +46,44 @@ function merge(words: Word[]) {
 	}
 }
 
-function renderSpan(words: Word[]): string {
+function merge(words: Array<Word | AnchorWord>) {
+	let a = 0
+	let b = 0
+	const result: Array<Word | AnchorWord> = []
+	for (; b < words.length; b++) {
+		const w = words[b]
+		if (isAnchorWord(w)) {
+			if (a < b) result.push(..._merge(words.slice(a, b) as Word[]))
+			w.words = _merge(w.words)
+			result.push(w)
+			a = b + 1
+		}
+	}
+
+	if (a < b) result.push(..._merge(words.slice(a, b) as Word[]))
+	return result
+
+	function isAnchorWord(w: Word | AnchorWord): w is AnchorWord {
+		return !!w["url"]
+	}
+}
+
+interface RenderSpanOptions {
+	rel?: string
+}
+
+function renderSpan(words: Array<Word | AnchorWord>, { rel = "" }: RenderSpanOptions = {}): string {
 	let result = ""
 	for (let i = 0; i < words.length; i++) {
-		if (isStyled(words[i])) {
-			result += `<span style="${getStyleSheet(words[i])}">${words[i].value}</span>`
+		const w = words[i]
+		if (isWord(w)) {
+			if (isStyled(w)) {
+				result += `<span style="${getStyleSheet(w)}">${w.value}</span>`
+			} else {
+				result += w.value
+			}
 		} else {
-			result += words[i].value
+			result += `<a href="${w.url}" ${getParams(w)}>${renderSpan(w.words)}</a>`
 		}
 	}
 
@@ -81,19 +116,34 @@ function renderSpan(words: Word[]): string {
 		if (w.hidden) props.push("opacity: 0")
 		return props.join(";")
 	}
+
+	function getParams(w: AnchorWord): string {
+		const attrs: string[] = []
+		// put all params
+		for (const key in w.params) {
+			attrs.push(`${key}="${w.params[key]}"`)
+		}
+		return attrs.join(" ")
+	}
 }
 
 let cache: Context | undefined
 
-function getContext(options?: Options): Context {
+function getContext(options?: BaseOptions): Context {
 	if (cache && options == undefined) return cache
 	cache = createContext(options)
 	return cache
 }
 
+interface Options extends BaseOptions {
+	anchor?: RenderSpanOptions
+}
+
 export function toHtml(ansiText: string, options?: Options) {
+	const anchor = options?.anchor
+	delete options?.anchor
 	const ctx = getContext(options)
-	return renderSpan(parseWithContext(ctx, ansiText))
+	return renderSpan(merge(parseWithContext(ctx, ansiText)), anchor)
 }
 
 const debugText = `	Standard colors:
@@ -181,30 +231,67 @@ interface DemoOptions {
 	fontFamily?: string
 }
 
-export function toDemo(rawText: string | null | undefined, options?: Options & DemoOptions): string {
-	if (rawText == undefined) rawText = debugText
-	const fontSize = options?.fontSize || "initial"
-	const fontFamily = options?.fontFamily || "initial"
-	const background = options?.theme?.background || "initial"
-	delete options?.fontSize
-	delete options?.fontFamily
+function demoTemplate(
+	content: string,
+	{ background, fontSize, fontFamily }: { background: string; fontSize: string; fontFamily: string },
+) {
 	return `<!DOCTYPE html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Document</title>
+		<title>ANSI Demo</title>
+		<style>
+pre#demo a {
+	text-decoration: none;
+}
+pre#demo:hover #app {
+	text-decoration: underline;
+}
+		</style>
 	</head>
 	<body style="background: ${background}">
-		<pre style="font-size: ${fontSize}; font-family: ${fontFamily}">${renderSpan(
-		merge(parseWithContext(getContext(options), rawText)),
-	)}</pre>
+		<pre id="demo" style="font-size: ${fontSize}; font-family: ${fontFamily}">${content}</pre>
 	</body>
 </html>`
 }
 
+export function toDemo(rawText: string | null | undefined, options?: Options & DemoOptions): string {
+	if (rawText == undefined) rawText = debugText
+	const fontSize = options?.fontSize || "initial"
+	delete options?.fontSize
+	const fontFamily = options?.fontFamily || "initial"
+	delete options?.fontFamily
+	const anchor = options?.anchor
+	delete options?.anchor
+	const background = options?.theme?.background || "initial"
+	return demoTemplate(renderSpan(merge(parseWithContext(getContext(options), rawText)), anchor), {
+		background,
+		fontSize,
+		fontFamily,
+	})
+}
+
 export function createToHtml(options?: Options) {
+	const anchor = options?.anchor
+	delete options?.anchor
 	const ctx = createContext(options)
-	return (ansiText: string) => renderSpan(parseWithContext(ctx, ansiText))
+	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)), anchor)
+}
+
+export function createToDemo(options?: Options & DemoOptions) {
+	const fontSize = options?.fontSize || "initial"
+	delete options?.fontSize
+	const fontFamily = options?.fontFamily || "initial"
+	delete options?.fontFamily
+	const anchor = options?.anchor
+	delete options?.anchor
+	const background = options?.theme?.background || "initial"
+	const ctx = createContext(options)
+	return (ansiText: string) =>
+		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText)), anchor), {
+			background,
+			fontSize,
+			fontFamily,
+		})
 }
