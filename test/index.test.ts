@@ -17,7 +17,7 @@ const options = {
 it("simple", () => {
 	const toHtml = createToHtml(options)
 	expect(toHtml(`\x1b[9;31mhelloworld\x1b[0m`)).toEqual(
-		'<span style="color:#D34F56;text-decoration:line-through">helloworld</span>',
+		'<span style="color:#d34f56;text-decoration:line-through">helloworld</span>',
 	)
 })
 
@@ -39,15 +39,15 @@ it("endurance failure", () => {
 	expect(toHtml(`\x1b[30$?!;;;;;hello\x1b[m`)).toEqual("ello")
 	expect(toHtml(`hello\x1b[?0001J\x1b[m`)).toEqual("")
 	expect(toHtml(`hello\x1b[?,002J\x1b[m`)).toEqual("hello")
-	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#D34F56">helloworld</span>')
-	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#D34F56">;mhelloworld</span>')
+	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#d34f56">helloworld</span>')
+	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#d34f56">;mhelloworld</span>')
 })
 
 it("hyperlink", () => {
 	const toHtml = createToHtml(options)
 	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
 	expect(toHtml(rawText)).toEqual(
-		'he<span style="color:#D34F56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#D34F56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#D34F56">a </span><span style="color:#7CA7D8">link</span></a><span style="color:#7CA7D8">world</span>',
+		'he<span style="color:#d34f56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#d34f56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#d34f56">a </span><span style="color:#7ca7d8">link</span></a><span style="color:#7ca7d8">world</span>',
 	)
 })
 
@@ -97,4 +97,14 @@ it("render with classes", () => {
 	const toDemo = createToDemo({ ...options, mode: "class" })
 	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
+})
+
+it("dim", () => {
+	const toHtml = createToHtml(options)
+	expect(toHtml(`hello\x1b[2mworld\x1b[m`)).toEqual('hello<span style="opacity:0.5">world</span>')
+	expect(toHtml(`hello\x1b[44;2mworld\x1b[m`)).toEqual('hello<span style="background-color:#7ca7d8">world</span>')
+	expect(toHtml(`hello\x1b[34;2mworld\x1b[m`)).toEqual('hello<span style="color:#7ca7d8;opacity:0.5">world</span>')
+	expect(toHtml(`hello\x1b[34;44;2mworld\x1b[m`)).toEqual(
+		'hello<span style="color:#7ca7d880;background-color:#7ca7d8">world</span>',
+	)
 })

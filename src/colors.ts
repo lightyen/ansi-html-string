@@ -38,6 +38,13 @@ export function toRgb(r: number, g: number, b: number): number {
 	return (r << 16) | (g << 8) | b
 }
 
+export function toHex(rgb: number): string {
+	const r = (rgb >> 16) & 0xff
+	const g = (rgb >> 8) & 0xff
+	const b = rgb & 0xff
+	return "#" + r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0")
+}
+
 export function relativeLuminance(rgb: number) {
 	const r = (rgb >> 16) & 0xff
 	const g = (rgb >> 8) & 0xff
@@ -405,7 +412,7 @@ export function toColorObject(hexRgb: string) {
 	if (rgb < 0) return null
 	return {
 		rgb,
-		css: hexRgb,
+		css: toHex(rgb),
 	}
 	function hexToColor(rgb: string): number {
 		let s = rgb.replace("#", "")

@@ -37,6 +37,7 @@ function _merge(words: Word[]) {
 
 	function equal(a: State, b: State): boolean {
 		if (a.bold !== b.bold) return false
+		if (a.dim !== b.dim) return false
 		if (a.underline !== b.underline) return false
 		if (a.italic !== b.italic) return false
 		if (a.strike !== b.strike) return false
@@ -69,7 +70,7 @@ function merge(words: Array<Word | AnchorWord>) {
 	}
 }
 
-function renderSpan(words: Array<Word | AnchorWord>, mode: "inline" | "class" = "inline"): string {
+function renderSpan(ctx: Context, words: Array<Word | AnchorWord>, mode: "inline" | "class" = "inline"): string {
 	const classPrefix = "ansi-"
 	let result = ""
 	for (let i = 0; i < words.length; i++) {
@@ -81,7 +82,7 @@ function renderSpan(words: Array<Word | AnchorWord>, mode: "inline" | "class" = 
 				result += w.value
 			}
 		} else {
-			result += `<a ${getAnchorAttributes(w)}>${renderSpan(w.words)}</a>`
+			result += `<a ${getAnchorAttributes(w)}>${renderSpan(ctx, w.words)}</a>`
 		}
 	}
 
@@ -92,6 +93,7 @@ function renderSpan(words: Array<Word | AnchorWord>, mode: "inline" | "class" = 
 			w.foreground != undefined ||
 			w.background != undefined ||
 			w.bold ||
+			w.dim ||
 			w.underline ||
 			w.italic ||
 			w.strike ||
@@ -118,23 +120,34 @@ function renderSpan(words: Array<Word | AnchorWord>, mode: "inline" | "class" = 
 			if (w.underline) classes.push(classPrefix + "underline")
 			if (w.strike) classes.push(classPrefix + "strike")
 			if (w.italic) classes.push(classPrefix + "italic")
+			if (w.dim) classes.push(classPrefix + "dim")
 			if (w.hidden) classes.push(classPrefix + "hidden")
 			if (classes.length > 0) attrs["class"] = classes.join(" ")
 			if (props.length > 0) attrs["style"] = props.join(";")
 		} else {
-			const props: string[] = []
-			if (w.foreground) props.push("color:" + w.foreground)
-			if (w.background) props.push("background-color:" + w.background)
-			if (w.bold) props.push("font-weight:700")
+			// TODO: support dim
+			// - change color opacity to 0.5
+			const props: Record<string, string> = {}
+			if (w.foreground) props["color"] = w.foreground
+			if (w.background) props["background-color"] = w.background
+			if (w.bold) props["font-weight"] = "700"
 			if (w.underline || w.strike) {
 				const values: string[] = []
 				if (w.underline) values.push("underline")
 				if (w.strike) values.push("line-through")
-				props.push("text-decoration:" + values.join(" "))
+				props["text-decoration"] = values.join(" ")
 			}
-			if (w.italic) props.push("font-style:italic")
-			if (w.hidden) props.push("opacity:0")
-			if (props.length > 0) attrs["style"] = props.join(";")
+			if (w.italic) props["font-style"] = "italic"
+			if (w.hidden) props["opacity"] = "0"
+			else if (w.dim) {
+				if (!w.background) props["opacity"] = "0.5"
+				else if (w.foreground) props["color"] = w.foreground + "80"
+				else if (ctx.palette.foreground) props["color"] = ctx.palette.foreground.css + "80"
+			}
+			const style = Object.entries(props)
+				.map(([k, v]) => k + ":" + v)
+				.join(";")
+			if (style.length > 0) attrs["style"] = style
 		}
 
 		return Object.entries(attrs)
@@ -162,7 +175,7 @@ function getContext(options?: Options): Context {
 
 export function toHtml(ansiText: string, options?: Options) {
 	const ctx = getContext(options)
-	return renderSpan(merge(parseWithContext(ctx, ansiText)), ctx.mode)
+	return renderSpan(ctx, merge(parseWithContext(ctx, ansiText)), ctx.mode)
 }
 
 const debugText = `	Standard colors:
@@ -337,7 +350,7 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 	const foreground = options?.theme?.foreground || "initial"
 	const background = options?.theme?.background || "initial"
 	const ctx = getContext(options)
-	return demoTemplate(renderSpan(merge(parseWithContext(ctx, rawText)), ctx.mode), {
+	return demoTemplate(renderSpan(ctx, merge(parseWithContext(ctx, rawText)), ctx.mode), {
 		foreground,
 		background,
 		fontSize,
@@ -348,7 +361,7 @@ export function toDemo(rawText: string | null | undefined, options?: Options & D
 
 export function createToHtml(options?: Options) {
 	const ctx = createContext(options)
-	return (ansiText: string) => renderSpan(merge(parseWithContext(ctx, ansiText)), ctx.mode)
+	return (ansiText: string) => renderSpan(ctx, merge(parseWithContext(ctx, ansiText)), ctx.mode)
 }
 
 export function createToDemo(options?: Options & DemoOptions) {
@@ -360,11 +373,14 @@ export function createToDemo(options?: Options & DemoOptions) {
 	const background = options?.theme?.background || "initial"
 	const ctx = createContext(options)
 	return (ansiText: string) =>
-		demoTemplate(renderSpan(merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText)), ctx.mode), {
-			foreground,
-			background,
-			fontSize,
-			fontFamily,
-			mode: ctx.mode,
-		})
+		demoTemplate(
+			renderSpan(ctx, merge(parseWithContext(ctx, ansiText == undefined ? debugText : ansiText)), ctx.mode),
+			{
+				foreground,
+				background,
+				fontSize,
+				fontFamily,
+				mode: ctx.mode,
+			},
+		)
 }

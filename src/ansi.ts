@@ -21,6 +21,7 @@ export interface Word {
 	bgMode: ColorMode
 	background?: string
 	bold: boolean
+	dim: boolean
 	underline: boolean
 	italic: boolean
 	strike: boolean
@@ -169,7 +170,8 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			foreground,
 			bgMode,
 			background,
-			bold: ctx.bold || ctx.dim,
+			bold: ctx.bold,
+			dim: ctx.dim,
 			underline: ctx.underline,
 			italic: ctx.italic,
 			strike: ctx.strike,
