@@ -14,6 +14,13 @@ const options = {
 	},
 }
 
+it("simple", () => {
+	const toHtml = createToHtml(options)
+	expect(toHtml(`\x1b[9;31mhelloworld\x1b[0m`)).toEqual(
+		'<span style="color:#D34F56;text-decoration:line-through">helloworld</span>',
+	)
+})
+
 it("start with ESC", () => {
 	const toHtml = createToHtml(options)
 	expect(toHtml(`\x1b[30mhello\x9bmworld`)).toEqual('<span style="color:#000000">hello</span>world')
@@ -34,8 +41,19 @@ it("hyperlink", () => {
 
 it("clear", () => {
 	const toHtml = createToHtml(options)
-	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`
-	expect(toHtml(rawText)).toEqual("helloworld")
+	expect(
+		toHtml(
+			`he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
+		),
+	).toEqual("helloworld")
+	expect(toHtml(`sdfsdsdf\x1b[0;1J`)).toEqual("sdfsdsdf")
+	expect(toHtml(`sdfsdsdf\x1b[1;2J`)).toEqual("sdfsdsdf")
+	expect(toHtml(`sdfsdsdf\x1b[1J`)).toEqual("")
+	expect(toHtml(`sdfsdsdf\x1b[2J`)).toEqual("")
+	expect(toHtml(`sdfsdsdf\x9b?0;1J`)).toEqual("sdfsdsdf")
+	expect(toHtml(`sdfsdsdf\x9b?1;2J`)).toEqual("sdfsdsdf")
+	expect(toHtml(`sdfsdsdf\x9b?1J`)).toEqual("")
+	expect(toHtml(`sdfsdsdf\x1b[?2J`)).toEqual("")
 })
 
 const demoText = `MacroError:

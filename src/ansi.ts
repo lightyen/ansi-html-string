@@ -414,149 +414,157 @@ export function parseWithContext(ctx: Context, rawText: string) {
 				return -2
 			}
 
-			switch (memo) {
-				case null:
-					switch (lastChar) {
-						case ANSI.m:
-							eatNum()
-							if (invalid) {
-								resetAttributes()
-							} else {
-								setAttribute(valueIndices)
-							}
-							return currentIndex + 1
-						case ANSI.At:
-						case ANSI.A:
-						case ANSI.B:
-						case ANSI.C:
-						case ANSI.D:
-						case ANSI.E:
-						case ANSI.F:
-						case ANSI.G:
-						case ANSI.H:
-						case ANSI.I:
-						case ANSI.J:
-						case ANSI.K:
-						case ANSI.L:
-						case ANSI.M:
-						case ANSI.P:
-						case ANSI.S:
-						case ANSI.T:
-						case ANSI.X:
-						case ANSI.Z:
-						case ANSI.Backstick:
-						case ANSI.a:
-						case ANSI.b: // case ANSI.c:
-						case ANSI.d:
-						case ANSI.e:
-						case ANSI.f:
-						case ANSI.g:
-						case ANSI.h:
-						case ANSI.i:
-						case ANSI.j:
-						case ANSI.k:
-						case ANSI.n:
-						case ANSI.r:
-						case ANSI.s:
-						case ANSI.t:
-						case ANSI.u:
-							// eatNum()
-							return currentIndex + 1
-						case ANSI.Space:
-							switch (lastChar) {
-								case ANSI.q:
-									return currentIndex + 1
-								default:
-									return currentIndex
-							}
-						case ANSI.DoubleQuote:
-							switch (lastChar) {
-								case ANSI.p:
-								case ANSI.q:
-									return currentIndex + 1
-								default:
-									return currentIndex
-							}
-						case ANSI.Dollar:
-							switch (lastChar) {
-								case ANSI.p:
-								case ANSI.z:
-								case ANSI.LeftCurlyBracket:
-								case ANSI.RightCurlyBracket:
-								case ANSI.Tilde:
-									return currentIndex + 1
-								default:
-									return currentIndex
-							}
-						case ANSI.SingleQuote:
-							switch (lastChar) {
-								case ANSI.w:
-								case ANSI.z:
-								case ANSI.LeftCurlyBracket:
-									return currentIndex + 1
-								default:
-									return currentIndex
-							}
-					}
-					break
-				case ANSI.LessThan:
-					switch (lastChar) {
-						case ANSI.r:
-						case ANSI.s:
-						case ANSI.t:
-							// eatNum()
-							return currentIndex + 1
-						default:
-							return currentIndex
-					}
-				case ANSI.Equal:
-					switch (lastChar) {
-						case ANSI.c:
-							// eatNum()
-							return currentIndex + 1
-						default:
-							return currentIndex
-					}
-				case ANSI.GreaterThan:
-					switch (lastChar) {
-						case ANSI.c:
-						case ANSI.J:
-						case ANSI.K:
-							// eatNum()
-							return currentIndex + 1
-						default:
-							return currentIndex
-					}
-				case ANSI.Question:
-					eatNum()
-					switch (lastChar) {
-						case ANSI.J: {
-							const values: number[] = []
-							for (let i = 0; i < valueIndices.length; i += 2) {
-								values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
-							}
-							const v = values[values.length - 1]
-							if (v === 1 || v === 2) words.splice(0)
-							return currentIndex + 1
+			if (memo === null) {
+				switch (lastChar) {
+					case ANSI.m:
+						eatNum()
+						if (invalid) {
+							resetAttributes()
+						} else {
+							setAttribute(valueIndices)
 						}
-						case ANSI.K:
-						case ANSI.h:
-						case ANSI.i:
-						case ANSI.l:
-						case ANSI.n:
-							return currentIndex + 1
-						case ANSI.Dollar:
-							if (rawText.charCodeAt(currentIndex) === ANSI.p) return currentIndex + 1
-							return currentIndex
-						default:
-							return currentIndex
+						return currentIndex + 1
+					case ANSI.J: {
+						eatNum()
+						const values: number[] = []
+						for (let i = 0; i < valueIndices.length; i += 2)
+							values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
+						if (values.length === 1 && (values[0] === 1 || values[0] === 2)) words.splice(0)
+						return currentIndex + 1
 					}
-				case ANSI.SingleQuote:
-					if (lastChar === ANSI.LeftCurlyBracket) return currentIndex + 1
-					return currentIndex
-				case ANSI.Exclamation:
-					if (lastChar === ANSI.p) return currentIndex + 1
-					return currentIndex
+					case ANSI.At:
+					case ANSI.A:
+					case ANSI.B:
+					case ANSI.C:
+					case ANSI.D:
+					case ANSI.E:
+					case ANSI.F:
+					case ANSI.G:
+					case ANSI.H:
+					case ANSI.I:
+					case ANSI.K:
+					case ANSI.L:
+					case ANSI.M:
+					case ANSI.P:
+					case ANSI.S:
+					case ANSI.T:
+					case ANSI.X:
+					case ANSI.Z:
+					case ANSI.Backstick:
+					case ANSI.a:
+					case ANSI.b: // case ANSI.c:
+					case ANSI.d:
+					case ANSI.e:
+					case ANSI.f:
+					case ANSI.g:
+					case ANSI.h:
+					case ANSI.i:
+					case ANSI.j:
+					case ANSI.k:
+					case ANSI.n:
+					case ANSI.r:
+					case ANSI.s:
+					case ANSI.t:
+					case ANSI.u:
+						// eatNum()
+						return currentIndex + 1
+					case ANSI.Space:
+						switch (lastChar) {
+							case ANSI.q:
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.DoubleQuote:
+						switch (lastChar) {
+							case ANSI.p:
+							case ANSI.q:
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.Dollar:
+						switch (lastChar) {
+							case ANSI.p:
+							case ANSI.z:
+							case ANSI.LeftCurlyBracket:
+							case ANSI.RightCurlyBracket:
+							case ANSI.Tilde:
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.SingleQuote:
+						switch (lastChar) {
+							case ANSI.w:
+							case ANSI.z:
+							case ANSI.LeftCurlyBracket:
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+				}
+			} else if (lastChar !== ANSI.SemiColon) {
+				switch (memo) {
+					case ANSI.LessThan:
+						switch (lastChar) {
+							case ANSI.r:
+							case ANSI.s:
+							case ANSI.t:
+								// eatNum()
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.Equal:
+						switch (lastChar) {
+							case ANSI.c:
+								// eatNum()
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.GreaterThan:
+						switch (lastChar) {
+							case ANSI.c:
+							case ANSI.J:
+							case ANSI.K:
+								// eatNum()
+								return currentIndex + 1
+							default:
+								return currentIndex
+						}
+					case ANSI.Question:
+						eatNum()
+						console.log("question mark", String.fromCharCode(lastChar))
+						switch (lastChar) {
+							case ANSI.J: {
+								const values: number[] = []
+								for (let i = 0; i < valueIndices.length; i += 2)
+									values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
+								if (values.length === 1 && (values[0] === 1 || values[0] === 2)) words.splice(0)
+								console.log(values)
+								return currentIndex + 1
+							}
+							case ANSI.K:
+							case ANSI.h:
+							case ANSI.i:
+							case ANSI.l:
+							case ANSI.n:
+								return currentIndex + 1
+							case ANSI.Dollar:
+								if (rawText.charCodeAt(currentIndex) === ANSI.p) return currentIndex + 1
+								return currentIndex
+							default:
+								return currentIndex
+						}
+					case ANSI.SingleQuote:
+						if (lastChar === ANSI.LeftCurlyBracket) return currentIndex + 1
+						return currentIndex
+					case ANSI.Exclamation:
+						if (lastChar === ANSI.p) return currentIndex + 1
+						return currentIndex
+				}
 			}
 			return -1
 		}
