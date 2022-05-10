@@ -31,6 +31,12 @@ it("start with CSI", () => {
 	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
+it("endurance failure", () => {
+	const toHtml = createToHtml(options)
+	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")
+	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#D34F56">helloworld</span>')
+})
+
 it("hyperlink", () => {
 	const toHtml = createToHtml(options)
 	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`

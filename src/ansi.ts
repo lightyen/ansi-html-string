@@ -404,9 +404,12 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 		return b
 
-		function eatNum() {
-			if (a < b) valueIndices.push(a, b)
-			else invalid = true
+		function eatNum(checkLength = false) {
+			if (a < b) {
+				valueIndices.push(a, b)
+			} else if (checkLength) {
+				invalid = true
+			}
 		}
 
 		function end(lastChar: number, currentIndex: number): number {
@@ -417,7 +420,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			if (memo === null) {
 				switch (lastChar) {
 					case ANSI.m:
-						eatNum()
+						eatNum(true)
 						if (invalid) {
 							resetAttributes()
 						} else {
@@ -425,7 +428,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 						}
 						return currentIndex + 1
 					case ANSI.J: {
-						eatNum()
+						eatNum(true)
 						const values: number[] = []
 						for (let i = 0; i < valueIndices.length; i += 2)
 							values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
@@ -466,7 +469,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					case ANSI.s:
 					case ANSI.t:
 					case ANSI.u:
-						// eatNum()
+						// eatNum(true)
 						return currentIndex + 1
 					case ANSI.Space:
 						switch (lastChar) {
@@ -511,7 +514,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 							case ANSI.r:
 							case ANSI.s:
 							case ANSI.t:
-								// eatNum()
+								// eatNum(true)
 								return currentIndex + 1
 							default:
 								return currentIndex
@@ -519,7 +522,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					case ANSI.Equal:
 						switch (lastChar) {
 							case ANSI.c:
-								// eatNum()
+								// eatNum(true)
 								return currentIndex + 1
 							default:
 								return currentIndex
@@ -529,21 +532,19 @@ export function parseWithContext(ctx: Context, rawText: string) {
 							case ANSI.c:
 							case ANSI.J:
 							case ANSI.K:
-								// eatNum()
+								// eatNum(true)
 								return currentIndex + 1
 							default:
 								return currentIndex
 						}
 					case ANSI.Question:
-						eatNum()
-						console.log("question mark", String.fromCharCode(lastChar))
+						eatNum(true)
 						switch (lastChar) {
 							case ANSI.J: {
 								const values: number[] = []
 								for (let i = 0; i < valueIndices.length; i += 2)
 									values.push(getNumber(valueIndices[i], valueIndices[i + 1]))
 								if (values.length === 1 && (values[0] === 1 || values[0] === 2)) words.splice(0)
-								console.log(values)
 								return currentIndex + 1
 							}
 							case ANSI.K:
