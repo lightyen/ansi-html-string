@@ -1,4 +1,5 @@
 import { createToDemo, createToHtml } from "../src"
+import { blend } from "../src/colors"
 
 const options = {
 	minimumContrastRatio: 1,
@@ -31,6 +32,14 @@ it("start with CSI", () => {
 	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
+it("hyperlink", () => {
+	const toHtml = createToHtml(options)
+	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
+	expect(toHtml(rawText)).toEqual(
+		'he<span style="color:#d34f56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#d34f56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#d34f56">a </span><span style="color:#7ca7d8">link</span></a><span style="color:#7ca7d8">world</span>',
+	)
+})
+
 it("endurance failure", () => {
 	const toHtml = createToHtml()
 	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")
@@ -47,14 +56,10 @@ it("endurance failure", () => {
 	expect(toHtml(`\x1b[48;5mhelloworld\x1b[m`)).toEqual('<span style="background-color:#3f4451">helloworld</span>')
 	expect(toHtml(`\x1b[48;5;mhelloworld\x1b[m`)).toEqual('<span style="background-color:#3f4451">helloworld</span>')
 	expect(toHtml(`\x1b[48;2;3;mblack\x1b[m`)).toEqual('<span style="background-color:#000000">black</span>')
-})
-
-it("hyperlink", () => {
-	const toHtml = createToHtml(options)
-	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
-	expect(toHtml(rawText)).toEqual(
-		'he<span style="color:#d34f56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#d34f56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#d34f56">a </span><span style="color:#7ca7d8">link</span></a><span style="color:#7ca7d8">world</span>',
-	)
+	expect(toHtml(`abcde\x1b[`)).toEqual("abcde")
+	expect(toHtml(`abcde\x1b]`)).toEqual("abcde")
+	expect(toHtml(`abcde\x9d6;id=app;http://example.com\x9c`)).toEqual("abcde")
+	expect(toHtml(`\x1b]8;;;;http://example.com\x9chelloworld\x1b\\`)).toEqual("helloworld")
 })
 
 it("clear", () => {
@@ -79,6 +84,10 @@ it("unicode", () => {
 	expect(toHtml(`\x1b[4;31m咖啡\x1b[34m真的\x1b[0m很好喝`)).toEqual(
 		'<span style="color:#d34f56;text-decoration:underline">咖啡</span><span style="color:#7ca7d8;text-decoration:underline">真的</span>很好喝',
 	)
+})
+
+it("blend color", () => {
+	expect(blend(0x231ee780, 0x330212ff)).toBeCloseTo(0x2b107d00, -1)
 })
 
 const demoText = `MacroError:

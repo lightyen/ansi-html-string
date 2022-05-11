@@ -348,11 +348,13 @@ export function parseWithContext(ctx: Context, rawText: string) {
 	function readCSI(index: number): number {
 		if (index >= rawText.length) return index
 		let b = index
+
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
 			if (isEnd(char)) {
 				handle(index, b + 1)
-				return b + 1
+				b++
+				break
 			}
 			b++
 		}
@@ -535,11 +537,13 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			const char = rawText.charCodeAt(b)
 			if (char === ASCII.ST || char === ASCII.BEL) {
 				addAnchor()
-				return b + 1
+				b = b + 1
+				break
 			}
 			if (char === ASCII.ESC && rawText.charCodeAt(b + 1) === ASCII.Backslash) {
 				addAnchor()
-				return b + 2
+				b = b + 2
+				break
 			}
 			if (char !== ASCII.SemiColon) {
 				b++
