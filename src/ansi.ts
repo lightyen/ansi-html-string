@@ -1,4 +1,4 @@
-import { ANSI, isNumber, isPrintable, isSoft, SGR } from "./code"
+import { ASCII, isNumber, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, ThemeConfig, toCss, toRgb } from "./colors"
 
 export interface Attributes {
@@ -44,9 +44,7 @@ export interface Options {
 	theme?: ThemeConfig
 }
 
-// sdfsd<a>sdsd<span>sdfds</span></a>sdds
-
-const defaultMinimumContrastRatio = 3
+export const defaultMinimumContrastRatio = 3
 
 export interface Context extends Attributes {
 	contrastCache: ContrastCache
@@ -81,61 +79,47 @@ export function createContext({
 
 export function parseWithContext(ctx: Context, rawText: string) {
 	const _words: Array<Word | AnchorWord> = []
-	const buffer: number[] = []
-
 	let a = 0
 	let b = 0
 	let words = _words
 	let anchor: AnchorWord | undefined
-
 	while (b < rawText.length) {
 		const char = rawText.charCodeAt(b)
-		if (isPrintable(char)) {
-			buffer.push(char)
-			b++
+		if (char === ASCII.ESC) {
+			pushWord()
+			const nextChar = rawText.charCodeAt(b + 1)
+			if (nextChar === ASCII.LeftSquareBracket) {
+				b = readCSI(b + 2)
+			} else if (nextChar === ASCII.RightSquareBracket) {
+				b = readOSC(b + 2)
+			} else {
+				b = b + 2
+			}
+			a = b
+			continue
+		} else if (char === ASCII.CSI) {
+			pushWord()
+			b = readCSI(b + 1)
+			a = b
+			continue
+		} else if (char === ASCII.OSC) {
+			pushWord()
+			b = readOSC(b + 1)
+			a = b
 			continue
 		}
+		b++
+	}
+	pushWord()
+	if (anchor) _words.push(anchor)
+	return _words
 
+	function pushWord() {
 		if (a < b) {
 			words.push(makeWord(rawText.slice(a, b)))
 			a = b
 		}
-		switch (char) {
-			case ANSI.ESC: {
-				const nextChar = rawText.charCodeAt(b + 1)
-				switch (nextChar) {
-					case ANSI.LeftSquareBracket:
-						b = readCSI(b + 2)
-						break
-					case ANSI.RightSquareBracket:
-						b = readOSC(b + 2)
-						break
-					default:
-						b = b + 2
-				}
-				a = b
-				break
-			}
-			case ANSI.CSI:
-				b = readCSI(b + 1)
-				a = b
-				break
-			case ANSI.OSC:
-				b = readOSC(b + 1)
-				a = b
-				break
-			default:
-				b++
-		}
 	}
-
-	if (a < b) {
-		words.push(makeWord(rawText.slice(a, b)))
-	}
-
-	if (anchor) _words.push(anchor)
-
-	return _words
 
 	function makeWord(value: string): Word {
 		let fgColor = ctx.fgIndexOrRgb
@@ -352,17 +336,21 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 	}
 
+	function getNumber(a: number, b: number): number {
+		let ans = 0
+		for (let k = a; k < b; k++) {
+			ans = 10 * ans + rawText.charCodeAt(k) - ASCII._0
+		}
+		return ans
+	}
+
 	/** @return last index */
 	function readCSI(index: number): number {
 		if (index >= rawText.length) return index
 		let b = index
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
-			if (!isPrintable(char)) {
-				handle(index, b)
-				return b
-			}
-			if (!isSoft(char)) {
+			if (isEnd(char)) {
 				handle(index, b + 1)
 				return b + 1
 			}
@@ -370,17 +358,21 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		}
 		return b
 
+		function isEnd(char: number) {
+			return char < 0x20 || char > 0x3f
+		}
+
 		function handle(a: number, b: number): void {
 			b--
 			const lastChar = rawText.charCodeAt(b)
 			switch (lastChar) {
-				case ANSI.m:
+				case ASCII.m:
 					{
 						const attrs: number[] = []
 						let i = a
 						while (i < b) {
 							const c = rawText.charCodeAt(i)
-							if (c === ANSI.SemiColon) {
+							if (c === ASCII.SemiColon) {
 								attrs.push(getNumber(a, i))
 								i++
 								a = i
@@ -395,9 +387,9 @@ export function parseWithContext(ctx: Context, rawText: string) {
 						setAttributes(attrs)
 					}
 					break
-				case ANSI.J:
+				case ASCII.J:
 					{
-						if (rawText.charCodeAt(a) === ANSI.Question) a++
+						if (rawText.charCodeAt(a) === ASCII.Question) a++
 						let i = a
 						while (i < b) {
 							const c = rawText.charCodeAt(i)
@@ -414,14 +406,6 @@ export function parseWithContext(ctx: Context, rawText: string) {
 
 					break
 			}
-		}
-
-		function getNumber(a: number, b: number): number {
-			let ans = 0
-			for (let k = a; k < b; k++) {
-				ans = 10 * ans + rawText.charCodeAt(k) - ANSI._0
-			}
-			return ans
 		}
 
 		function resetAttributes() {
@@ -530,78 +514,65 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		// params format: id=xyz123:foo=bar:baz=quux
 		if (index >= rawText.length) return index
 		let mode: number = Number.NaN
-		let anchorMode = Number.NaN
+		let state = 0
 		let params: Record<string, string> = {}
-
 		let a = index
 		let b = index
 		while (b < rawText.length) {
 			const char = rawText.charCodeAt(b)
-			if (char === ANSI.ST || char === ANSI.BEL) {
-				if (anchor) {
-					_words.push(anchor)
-					anchor = undefined
-					words = _words
-				}
-				if (anchorMode === 1) {
-					const url = rawText.slice(a, b)
-					if (url) {
-						anchor = { url, params, words: [] }
-						words = anchor.words
-					}
-				}
+			if (char === ASCII.ST || char === ASCII.BEL) {
+				addAnchor()
 				return b + 1
 			}
-			if (char === ANSI.ESC && rawText.charCodeAt(b + 1) === ANSI.Backslash) {
-				if (anchor) {
-					_words.push(anchor)
-					anchor = undefined
-					words = _words
-				}
-				if (anchorMode === 1) {
-					const url = rawText.slice(a, b)
-					if (url) {
-						anchor = { url, params, words: [] }
-						words = anchor.words
-					}
-				}
+			if (char === ASCII.ESC && rawText.charCodeAt(b + 1) === ASCII.Backslash) {
+				addAnchor()
 				return b + 2
 			}
-			if (!isPrintable(char)) return b
-			if (char !== ANSI.SemiColon) {
+			if (char !== ASCII.SemiColon) {
 				b++
 				continue
 			}
-
 			if (Number.isNaN(mode)) {
-				const value = parseInt(rawText.slice(a, b))
-				if (Number.isNaN(value)) mode = -1
-				else mode = value
+				mode = getNumber(a, b)
 				b++
 				a = b
 				continue
 			}
 
-			switch (mode) {
-				case 8:
-					if (char !== ANSI.SemiColon) {
-						b++
-						continue
-					}
-					if (Number.isNaN(anchorMode)) {
-						params = getMap(rawText.slice(a, b))
-						anchorMode = 1
-						b++
-						a = b
-						continue
-					}
-					break
-				default:
+			if (mode === 8) {
+				if (state === 0) {
+					params = getMap(rawText.slice(a, b))
+					state = 1
 					b++
-					break
+					a = b
+					continue
+				}
+
+				// failed
+				state = 2
+
+				b++
+				a = b
+				continue
+			}
+
+			b++
+		}
+
+		return b
+
+		function addAnchor() {
+			if (anchor) {
+				_words.push(anchor)
+				anchor = undefined
+				words = _words
+			}
+			if (state === 1 && a < b) {
+				const url = rawText.slice(a, b)
+				anchor = { url, params, words: [] }
+				words = anchor.words
 			}
 		}
-		return b
 
 		function getMap(value: string) {
 			const result: Record<string, string> = {}

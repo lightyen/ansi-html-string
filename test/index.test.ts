@@ -68,6 +68,13 @@ it("clear", () => {
 	expect(toHtml(`sdfsdsdf\x1b[?2J`)).toEqual("")
 })
 
+it("unicode", () => {
+	const toHtml = createToHtml(options)
+	expect(toHtml(`\x1b[4;31m咖啡\x1b[34m真的\x1b[0m很好喝`)).toEqual(
+		'<span style="color:#d34f56;text-decoration:underline">咖啡</span><span style="color:#7ca7d8;text-decoration:underline">真的</span>很好喝',
+	)
+})
+
 const demoText = `MacroError:
 src/AppMain.tsx
 
