@@ -32,15 +32,21 @@ it("start with CSI", () => {
 })
 
 it("endurance failure", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createToHtml()
 	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")
 	expect(toHtml(`hello\x1b[??2Jhelloworld\x1b[m`)).toEqual("hellohelloworld")
 	expect(toHtml(`\x1b[35?35mhello\x1b[m`)).toEqual("hello")
 	expect(toHtml(`\x1b[30$?!;;;;;hello\x1b[m`)).toEqual("ello")
 	expect(toHtml(`hello\x1b[?0001J\x1b[m`)).toEqual("")
 	expect(toHtml(`hello\x1b[?,002J\x1b[m`)).toEqual("hello")
-	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#d34f56">helloworld</span>')
-	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#d34f56">;mhelloworld</span>')
+	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#e05561">helloworld</span>')
+	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#e05561">;mhelloworld</span>')
+	expect(toHtml(`\x1b[38;5mhelloworld\x1b[m`)).toEqual('<span style="color:#3f4451">helloworld</span>')
+	expect(toHtml(`\x1b[38;5;mhelloworld\x1b[m`)).toEqual('<span style="color:#3f4451">helloworld</span>')
+	expect(toHtml(`\x1b[38;2;3;mblack\x1b[m`)).toEqual('<span style="color:#000000">black</span>')
+	expect(toHtml(`\x1b[48;5mhelloworld\x1b[m`)).toEqual('<span style="background-color:#3f4451">helloworld</span>')
+	expect(toHtml(`\x1b[48;5;mhelloworld\x1b[m`)).toEqual('<span style="background-color:#3f4451">helloworld</span>')
+	expect(toHtml(`\x1b[48;2;3;mblack\x1b[m`)).toEqual('<span style="background-color:#000000">black</span>')
 })
 
 it("hyperlink", () => {
@@ -55,7 +61,7 @@ it("clear", () => {
 	const toHtml = createToHtml(options)
 	expect(
 		toHtml(
-			`he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
+			`he\x1b[31mllo\x9d8;id=app;http://example.com\x9cThis is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
 		),
 	).toEqual("helloworld")
 	expect(toHtml(`sdfsdsdf\x1b[0;1J`)).toEqual("sdfsdsdf")
@@ -106,6 +112,13 @@ it("render with classes", () => {
 	expect(output).toMatchSnapshot()
 })
 
+it("inverse", () => {
+	const toHtml = createToHtml({ theme: { foreground: "#eee" } })
+	expect(toHtml(`hello\x1b[7mworld\x1b[m`)).toEqual(
+		'<span style="color:#eeeeee">hello</span><span style="background-color:#eeeeee">world</span>',
+	)
+})
+
 it("dim", () => {
 	const toHtml = createToHtml(options)
 	expect(toHtml(`hello\x1b[2mworld\x1b[m`)).toEqual('hello<span style="opacity:0.5">world</span>')
@@ -114,4 +127,66 @@ it("dim", () => {
 	expect(toHtml(`hello\x1b[34;44;2mworld\x1b[m`)).toEqual(
 		'hello<span style="color:#7ca7d880;background-color:#7ca7d8">world</span>',
 	)
+})
+
+it("minimumContrastRatio", () => {
+	let toHtml = createToHtml({ minimumContrastRatio: 1 })
+	expect(toHtml(`\x1b[31;41mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#e05561;background-color:#e05561">helloworld</span>',
+	)
+	toHtml = createToHtml({ minimumContrastRatio: 4.5 })
+	expect(toHtml(`\x1b[31;41mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#ffffff;background-color:#e05561">helloworld</span>',
+	)
+	expect(toHtml(`\x1b[107;92mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#6b914b;background-color:#d7dae0">helloworld</span>',
+	)
+})
+
+it("other (inline)", () => {
+	let toHtml = createToHtml()
+	expect(toHtml("helloworld")).toEqual("helloworld")
+	expect(toHtml("\x1b[3;100mhelloworl\x1b[8md\x1b[m")).toEqual(
+		'<span style="background-color:#4f5666;font-style:italic">helloworl</span><span style="background-color:#4f5666;font-style:italic;opacity:0">d</span>',
+	)
+	expect(toHtml("\x1b[3;100;49mhelloworld\x1b[m")).toEqual('<span style="font-style:italic">helloworld</span>')
+	expect(toHtml(`\x1b[48;2;3;4;5mhelloworld\x1b[m`)).toEqual(
+		'<span style="background-color:#030405">helloworld</span>',
+	)
+	expect(toHtml(`hello\x0bwo\x1bmrld\x1b[m`)).toEqual("hello\x0bworld")
+	expect(toHtml(`\x1b[38;5;2mhelloworld\x1b[m`)).toEqual('<span style="color:#8cc265">helloworld</span>')
+	expect(toHtml(`\x1b[38;5;2;1mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#a5e075;font-weight:700">helloworld</span>',
+	)
+	expect(toHtml(`\x1b[38;2;2;4;6mhelloworld\x1b[m`)).toEqual('<span style="color:#020406">helloworld</span>')
+	expect(toHtml(`\x1b]8;;http://example.com\x1b\\This is a link`)).toEqual(
+		'<a href="http://example.com" class="ansi-link">This is a link</a>',
+	)
+	expect(toHtml(`\x1b[2;31;41mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#fcdfe380;background-color:#e05561">helloworld</span>',
+	)
+	toHtml = createToHtml({ theme: { foreground: "#eeeeee" } })
+	expect(toHtml(`\x1b[2;41mhelloworld\x1b[m`)).toEqual(
+		'<span style="color:#eeeeee80;background-color:#e05561">helloworld</span>',
+	)
+})
+
+it("other (class)", () => {
+	const toHtml = createToHtml({ mode: "class" })
+	expect(toHtml(`\x1b[7mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-inverse ansi-bg-inverse">helloworld</span>')
+	expect(toHtml(`\x1b[1;38;5;1mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-9 ansi-bold">helloworld</span>')
+	expect(toHtml(`\x1b[2;3;4;5;6;7;8;9mhelloworld\x1b[m`)).toEqual(
+		'<span class="ansi-fg-inverse ansi-bg-inverse ansi-underline ansi-strike ansi-italic ansi-dim ansi-hidden">helloworld</span>',
+	)
+	expect(toHtml(`\x1b[2;31mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-1 ansi-dim">helloworld</span>')
+})
+
+it("throw error", () => {
+	const toHtml = createToHtml()
+	expect(() => toHtml(`\x1b[38;5;288mhelloworld288\x1b[m`)).toThrowError("foreground is not defined: 288")
+})
+
+it("throw error", () => {
+	const toHtml = createToHtml()
+	expect(() => toHtml(`\x1b[48;5;728mhelloworld728\x1b[m`)).toThrowError("background is not defined: 728")
 })

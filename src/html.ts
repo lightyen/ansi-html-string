@@ -125,8 +125,6 @@ function renderSpan(ctx: Context, words: Array<Word | AnchorWord>, mode: "inline
 			if (classes.length > 0) attrs["class"] = classes.join(" ")
 			if (props.length > 0) attrs["style"] = props.join(";")
 		} else {
-			// TODO: support dim
-			// - change color opacity to 0.5
 			const props: Record<string, string> = {}
 			if (w.foreground) props["color"] = w.foreground
 			if (w.background) props["background-color"] = w.background

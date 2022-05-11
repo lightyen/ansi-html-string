@@ -220,7 +220,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 				return `${fgIndexOrRgb}`
 			case ColorMode.DEFAULT:
 			default:
-				if (inverse) return "default-inverse"
+				if (inverse) return "inverse"
 				return undefined
 		}
 	}
@@ -236,7 +236,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 				return `${bgIndexOrRgb}`
 			case ColorMode.DEFAULT:
 			default:
-				if (inverse) return "bg-inverse"
+				if (inverse) return "inverse"
 				return undefined
 		}
 	}
@@ -451,8 +451,8 @@ export function parseWithContext(ctx: Context, rawText: string) {
 						ctx.strike = true
 						break
 					case SGR.SlowBlink:
-						break
 					case SGR.RapidBlink:
+						// undefined
 						break
 				}
 				if (code >= SGR.FgBlack && code <= SGR.FgWhite) {
@@ -475,32 +475,45 @@ export function parseWithContext(ctx: Context, rawText: string) {
 					ctx.bgMode = ColorMode.DEFAULT
 				} else if (code === SGR.FgExt) {
 					if (attrs[i + 1] === 5) {
-						if (i + 2 >= attrs.length) break
-						ctx.fgIndexOrRgb = attrs[i + 2]
 						ctx.fgMode = ColorMode.P256
+						if (i + 2 >= attrs.length) {
+							ctx.fgIndexOrRgb = 0
+							break
+						}
+						ctx.fgIndexOrRgb = attrs[i + 2]
 						i += 2
 					} else if (attrs[i + 1] === 2) {
-						if (i + 4 >= attrs.length) break
+						ctx.fgMode = ColorMode.RGB
+						if (i + 4 >= attrs.length) {
+							ctx.fgIndexOrRgb = 0
+							break
+						}
 						const r = attrs[i + 2]
 						const g = attrs[i + 3]
 						const b = attrs[i + 4]
 						ctx.fgIndexOrRgb = toRgb(r, g, b)
-						ctx.fgMode = ColorMode.RGB
+
 						i += 4
 					}
 				} else if (code === SGR.BgExt) {
 					if (attrs[i + 1] === 5) {
-						if (i + 2 >= attrs.length) break
-						ctx.bgIndexOrRgb = attrs[i + 2]
 						ctx.bgMode = ColorMode.P256
+						if (i + 2 >= attrs.length) {
+							ctx.bgIndexOrRgb = 0
+							break
+						}
+						ctx.bgIndexOrRgb = attrs[i + 2]
 						i += 2
 					} else if (attrs[i + 1] === 2) {
-						if (i + 4 >= attrs.length) break
+						ctx.bgMode = ColorMode.RGB
+						if (i + 4 >= attrs.length) {
+							ctx.bgIndexOrRgb = 0
+							break
+						}
 						const r = attrs[i + 2]
 						const g = attrs[i + 3]
 						const b = attrs[i + 4]
 						ctx.bgIndexOrRgb = toRgb(r, g, b)
-						ctx.bgMode = ColorMode.RGB
 						i += 4
 					}
 				}

@@ -142,24 +142,24 @@ export function increaseLuminance(fg_rgb: number, bg_rgb: number, ratio: number)
 
 const _colors: string[] = [
 	// standard colors
-	"#3f4451",
-	"#e05561",
-	"#8cc265",
-	"#d18f52",
-	"#4aa5f0",
-	"#c162de",
-	"#42b3c2",
-	"#e6e6e6",
+	"#3f4451", // 30
+	"#e05561", // 31
+	"#8cc265", // 32
+	"#d18f52", // 33
+	"#4aa5f0", // 34
+	"#c162de", // 35
+	"#42b3c2", // 36
+	"#e6e6e6", // 37
 	// bright colors
-	"#4f5666",
-	"#ff616e",
-	"#a5e075",
-	"#f0a45d",
-	"#4dc4ff",
-	"#de73ff",
-	"#4cd1e0",
-	"#d7dae0",
-	// 256-color
+	"#4f5666", // 90
+	"#ff616e", // 91
+	"#a5e075", // 92
+	"#f0a45d", // 93
+	"#4dc4ff", // 94
+	"#de73ff", // 95
+	"#4cd1e0", // 96
+	"#d7dae0", // 97
+	// 256-colors
 	"#000000",
 	"#00005f",
 	"#000087",
