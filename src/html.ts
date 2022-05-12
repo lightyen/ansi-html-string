@@ -1,9 +1,7 @@
-import { AnchorWord, Context, createContext, Options, parseWithContext, Word } from "./ansi"
+import { AnchorWord, Context, createContext, isAnchorWord, Options, parseWithContext, Word } from "./ansi"
 import { ColorMode } from "./colors"
 
-function isWord(w: Word | AnchorWord | undefined): w is Word {
-	return !!w && !w["url"]
-}
+// https://mateam.net/html-escape-characters/
 
 function _merge(words: Word[]) {
 	type State = Omit<Word, "value">
@@ -75,7 +73,7 @@ function renderSpan(ctx: Context, words: Array<Word | AnchorWord>, mode: "inline
 	let result = ""
 	for (let i = 0; i < words.length; i++) {
 		const w = words[i]
-		if (isWord(w)) {
+		if (!isAnchorWord(w)) {
 			if (isSpan(w)) {
 				result += `<span ${getAttributes(w)}>${w.value}</span>`
 			} else {

@@ -35,6 +35,10 @@ export interface AnchorWord {
 	words: Word[]
 }
 
+export function isAnchorWord(w: Word | AnchorWord | undefined): w is AnchorWord {
+	return Object.prototype.hasOwnProperty.call(w, "words")
+}
+
 export interface Options {
 	/** minimum contrast ratio: 1 - 21 (default: 3) */
 	minimumContrastRatio?: number
@@ -93,7 +97,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			} else if (nextChar === ASCII.RightSquareBracket) {
 				b = readOSC(b + 2)
 			} else {
-				b = b + 2
+				b = other(b + 1)
 			}
 			a = b
 			continue
@@ -107,7 +111,30 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			b = readOSC(b + 1)
 			a = b
 			continue
+		} else {
+			switch (char) {
+				case ASCII.BS:
+				case ASCII.DEL: {
+					pushWord()
+					a = b
+					let lastWord = words.at(words.length - 1)
+					lastWord = isAnchorWord(lastWord) ? lastWord.words[lastWord.words.length - 1] : lastWord
+					if (lastWord) lastWord.value = lastWord.value.slice(0, -1)
+					break
+				}
+				case ASCII.NUL:
+				case ASCII.HT:
+				case ASCII.LF:
+					break
+				default:
+					if (char < 0x1f || char === ASCII.DEL) {
+						pushWord()
+						a = b + 1
+					}
+					break
+			}
 		}
+
 		b++
 	}
 	pushWord()
@@ -115,10 +142,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 	return _words
 
 	function pushWord() {
-		if (a < b) {
-			words.push(makeWord(rawText.slice(a, b)))
-			a = b
-		}
+		if (a < b) words.push(makeWord(rawText.slice(a, b)))
 	}
 
 	function makeWord(value: string): Word {
@@ -361,7 +385,7 @@ export function parseWithContext(ctx: Context, rawText: string) {
 		return b
 
 		function isEnd(char: number) {
-			return char < 0x20 || char > 0x3f
+			return char < 0x20 || char >= 0x40
 		}
 
 		function handle(a: number, b: number): void {
@@ -600,6 +624,25 @@ export function parseWithContext(ctx: Context, rawText: string) {
 				}
 			})
 			return result
+		}
+	}
+
+	/** @return last index */
+	function other(index: number): number {
+		if (index >= rawText.length) return index
+		let b = index
+		while (b < rawText.length) {
+			const char = rawText.charCodeAt(b)
+			if (isEnd(char)) {
+				b++
+				break
+			}
+			b++
+		}
+		return b
+
+		function isEnd(char: number) {
+			return true
 		}
 	}
 }

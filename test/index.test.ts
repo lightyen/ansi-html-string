@@ -58,6 +58,10 @@ it("endurance failure", () => {
 	expect(toHtml(`\x1b[48;2;3;mblack\x1b[m`)).toEqual('<span style="background-color:#000000">black</span>')
 	expect(toHtml(`abcde\x1b[`)).toEqual("abcde")
 	expect(toHtml(`abcde\x1b]`)).toEqual("abcde")
+	expect(toHtml(`\x1b7helloworld`)).toEqual("helloworld")
+	expect(toHtml(`\x1b[?25hhelloworld`)).toEqual("helloworld")
+	expect(toHtml(`\x1b[?1049hhelloworld`)).toEqual("helloworld")
+	expect(toHtml(`\x1b[20;3Hhelloworld`)).toEqual("helloworld")
 	expect(toHtml(`abcde\x9d6;id=app;http://example.com\x9c`)).toEqual("abcde")
 	expect(toHtml(`\x1b]8;;;;http://example.com\x9chelloworld\x1b\\`)).toEqual("helloworld")
 })
@@ -162,7 +166,7 @@ it("other (inline)", () => {
 	expect(toHtml(`\x1b[48;2;3;4;5mhelloworld\x1b[m`)).toEqual(
 		'<span style="background-color:#030405">helloworld</span>',
 	)
-	expect(toHtml(`hello\x0bwo\x1bmrld\x1b[m`)).toEqual("hello\x0bworld")
+	expect(toHtml(`hello\x0bwo\x1bmrld\x1b[m`)).toEqual("helloworld")
 	expect(toHtml(`\x1b[38;5;2mhelloworld\x1b[m`)).toEqual('<span style="color:#8cc265">helloworld</span>')
 	expect(toHtml(`\x1b[38;5;2;1mhelloworld\x1b[m`)).toEqual(
 		'<span style="color:#a5e075;font-weight:700">helloworld</span>',
