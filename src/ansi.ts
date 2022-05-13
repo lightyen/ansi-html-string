@@ -101,16 +101,6 @@ export function parseWithContext(ctx: Context, rawText: string) {
 			}
 			a = b
 			continue
-		} else if (char === ASCII.CSI) {
-			pushWord()
-			b = readCSI(b + 1)
-			a = b
-			continue
-		} else if (char === ASCII.OSC) {
-			pushWord()
-			b = readOSC(b + 1)
-			a = b
-			continue
 		} else {
 			switch (char) {
 				case ASCII.BS:

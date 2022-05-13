@@ -24,12 +24,7 @@ it("simple", () => {
 
 it("start with ESC", () => {
 	const toHtml = createToHtml(options)
-	expect(toHtml(`\x1b[30mhello\x9bmworld`)).toEqual('<span style="color:#000000">hello</span>world')
-})
-
-it("start with CSI", () => {
-	const toHtml = createToHtml(options)
-	expect(toHtml(`\x9b30mhello\x1b[0mworld`)).toEqual('<span style="color:#000000">hello</span>world')
+	expect(toHtml(`\x1b[30mhello\x1b[mworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
 it("hyperlink", () => {
@@ -62,24 +57,21 @@ it("endurance failure", () => {
 	expect(toHtml(`\x1b[?25hhelloworld`)).toEqual("helloworld")
 	expect(toHtml(`\x1b[?1049hhelloworld`)).toEqual("helloworld")
 	expect(toHtml(`\x1b[20;3Hhelloworld`)).toEqual("helloworld")
-	expect(toHtml(`abcde\x9d6;id=app;http://example.com\x9c`)).toEqual("abcde")
-	expect(toHtml(`\x1b]8;;;;http://example.com\x9chelloworld\x1b\\`)).toEqual("helloworld")
+	expect(toHtml(`abcde\x1b]6;id=app;http://example.com\x1b\\`)).toEqual("abcde")
+	expect(toHtml(`\x1b]8;;;;http://example.com\x1b\\helloworld\x1b\\`)).toEqual("helloworld")
 })
 
 it("clear", () => {
 	const toHtml = createToHtml(options)
 	expect(
 		toHtml(
-			`he\x1b[31mllo\x9d8;id=app;http://example.com\x9cThis is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
+			`he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
 		),
 	).toEqual("helloworld")
 	expect(toHtml(`sdfsdsdf\x1b[0;1J`)).toEqual("sdfsdsdf")
 	expect(toHtml(`sdfsdsdf\x1b[1;2J`)).toEqual("sdfsdsdf")
 	expect(toHtml(`sdfsdsdf\x1b[1J`)).toEqual("")
 	expect(toHtml(`sdfsdsdf\x1b[2J`)).toEqual("")
-	expect(toHtml(`sdfsdsdf\x9b?0;1J`)).toEqual("sdfsdsdf")
-	expect(toHtml(`sdfsdsdf\x9b?1;2J`)).toEqual("sdfsdsdf")
-	expect(toHtml(`sdfsdsdf\x9b?1J`)).toEqual("")
 	expect(toHtml(`sdfsdsdf\x1b[?2J`)).toEqual("")
 })
 
