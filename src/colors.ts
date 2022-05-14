@@ -400,7 +400,7 @@ export interface ColorObject {
 	css: string
 }
 
-export function toColorObject(hexRgb: string) {
+export function toColorObject(hexRgb: string): ColorObject | null {
 	const rgb = hexToColor(hexRgb)
 	if (rgb < 0) return null
 	return {
@@ -429,7 +429,7 @@ export function toColorObject(hexRgb: string) {
 	}
 }
 
-export interface ThemeConfig {
+export interface Theme {
 	/** hex */
 	foreground?: string
 	/** hex */
@@ -468,7 +468,13 @@ export interface ThemeConfig {
 	brightWhite?: string
 }
 
-export function createPalette(theme?: ThemeConfig) {
+export interface Palette {
+	foreground?: ColorObject | null
+	background?: ColorObject | null
+	colors: (ColorObject | null)[]
+}
+
+export function createPalette(theme?: Theme): Palette {
 	return {
 		foreground: theme?.foreground ? toColorObject(theme?.foreground) : null,
 		background: theme?.background ? toColorObject(theme?.background) : null,

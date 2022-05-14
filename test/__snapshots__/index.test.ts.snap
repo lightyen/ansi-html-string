@@ -8,17 +8,17 @@ exports[`render 1`] = `
 		<meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
 		<title>ANSI Demo</title>
 		<style>
-
-.ansi-link {
-	text-decoration: underline dotted;
-}
-.ansi-link:hover {
-	text-decoration: underline;
-}
-		</style>
+	
+	.ansi-link {
+		text-decoration: underline dotted;
+	}
+	.ansi-link:hover {
+		text-decoration: underline;
+	}
+	</style>
 	</head>
 	<body style=\\"color:initial;background-color:initial\\">
-		<pre id=\\"demo\\" style=\\"font-size: initial; font-family: initial\\">MacroError:
+		<pre id=\\"demo\\" style=\\"font-size:20px;font-family:Cascadia Code PL, Cascadia Mono PL, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace\\">MacroError:
 src/AppMain.tsx
 
 <span style=\\"color:#ff8383\\">&#10005; </span><span style=\\"color:#ffd3d3\\">bg-indigoa-400</span><span style=\\"color:#ff8383\\"> was not found</span>
@@ -48,7 +48,7 @@ exports[`render with classes 1`] = `
 		<meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">
 		<title>ANSI Demo</title>
 		<style>
-.ansi-fg-0 { color: #3f4451 }
+	.ansi-fg-0 { color: #3f4451 }
 .ansi-fg-1 { color: #e05561 }
 .ansi-fg-2 { color: #8cc265 }
 .ansi-fg-3 { color: #d18f52 }
@@ -90,16 +90,16 @@ exports[`render with classes 1`] = `
 .ansi-hidden { opacity: 0 }
 .ansi-link { color: initial; text-decoration: none }
 .ansi-link:hover { text-decoration: underline }
-.ansi-link {
-	text-decoration: underline dotted;
-}
-.ansi-link:hover {
-	text-decoration: underline;
-}
-		</style>
+	.ansi-link {
+		text-decoration: underline dotted;
+	}
+	.ansi-link:hover {
+		text-decoration: underline;
+	}
+	</style>
 	</head>
 	<body style=\\"color:initial;background-color:initial\\">
-		<pre id=\\"demo\\" style=\\"font-size: initial; font-family: initial\\">MacroError:
+		<pre id=\\"demo\\" style=\\"font-size:20px;font-family:Cascadia Code PL, Cascadia Mono PL, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace\\">MacroError:
 src/AppMain.tsx
 
 <span style=\\"color:#ff8383\\">&#10005; </span><span style=\\"color:#ffd3d3\\">bg-indigoa-400</span><span style=\\"color:#ff8383\\"> was not found</span>

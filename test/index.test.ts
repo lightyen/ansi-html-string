@@ -1,5 +1,5 @@
-import { createToDemo, createToHtml } from "../src"
 import { blend } from "../src/colors"
+import { createConverter } from "../src/parse"
 
 const options = {
 	minimumContrastRatio: 1,
@@ -16,19 +16,19 @@ const options = {
 }
 
 it("simple", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createConverter(options).toHtml
 	expect(toHtml(`\x1b[9;31mhelloworld\x1b[0m`)).toEqual(
 		'<span style="color:#d34f56;text-decoration:line-through">helloworld</span>',
 	)
 })
 
 it("start with ESC", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createConverter(options).toHtml
 	expect(toHtml(`\x1b[30mhello\x1b[mworld`)).toEqual('<span style="color:#000000">hello</span>world')
 })
 
 it("hyperlink", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createConverter(options).toHtml
 	const rawText = `he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[m`
 	expect(toHtml(rawText)).toEqual(
 		'he<span style="color:#d34f56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#d34f56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#d34f56">a </span><span style="color:#7ca7d8">link</span></a><span style="color:#7ca7d8">world</span>',
@@ -36,12 +36,12 @@ it("hyperlink", () => {
 })
 
 it("endurance failure", () => {
-	const toHtml = createToHtml()
+	const toHtml = createConverter().toHtml
 	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")
 	expect(toHtml(`hello\x1b[??2Jhelloworld\x1b[m`)).toEqual("hellohelloworld")
 	expect(toHtml(`\x1b[35?35mhello\x1b[m`)).toEqual("hello")
 	expect(toHtml(`\x1b[30$?!;;;;;hello\x1b[m`)).toEqual("ello")
-	expect(toHtml(`hello\x1b[?0001J\x1b[m`)).toEqual("")
+	expect(toHtml(`hello\x1b[?0001J\x1b[m`)).toEqual("hello")
 	expect(toHtml(`hello\x1b[?,002J\x1b[m`)).toEqual("hello")
 	expect(toHtml(`\x1b[31m\x1b[0;;;31mhelloworld\x1b[m`)).toEqual('<span style="color:#e05561">helloworld</span>')
 	expect(toHtml(`\x1b[31m\x1b[0;;31w;mhelloworld\x1b[m`)).toEqual('<span style="color:#e05561">;mhelloworld</span>')
@@ -61,22 +61,8 @@ it("endurance failure", () => {
 	expect(toHtml(`\x1b]8;;;;http://example.com\x1b\\helloworld\x1b\\`)).toEqual("helloworld")
 })
 
-it("clear", () => {
-	const toHtml = createToHtml(options)
-	expect(
-		toHtml(
-			`he\x1b[31mllo\x1b]8;id=app;http://example.com\x1b\\This is \x1b]8;id=app:rel=noopener noreferrer;http://example.com\x1b\\a \x1b[34mli\x1b[34mnk\x1b]8;;\x1b\\world\x1b[0m\x1b[?2Jhelloworld`,
-		),
-	).toEqual("helloworld")
-	expect(toHtml(`sdfsdsdf\x1b[0;1J`)).toEqual("sdfsdsdf")
-	expect(toHtml(`sdfsdsdf\x1b[1;2J`)).toEqual("sdfsdsdf")
-	expect(toHtml(`sdfsdsdf\x1b[1J`)).toEqual("")
-	expect(toHtml(`sdfsdsdf\x1b[2J`)).toEqual("")
-	expect(toHtml(`sdfsdsdf\x1b[?2J`)).toEqual("")
-})
-
 it("unicode", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createConverter(options).toHtml
 	expect(toHtml(`\x1b[4;31m咖啡\x1b[34m真的\x1b[0m很好喝`)).toEqual(
 		'<span style="color:#d34f56;text-decoration:underline">咖啡</span><span style="color:#7ca7d8;text-decoration:underline">真的</span>很好喝',
 	)
@@ -106,50 +92,50 @@ Try one of these classes:
 `
 
 it("render", () => {
-	const toDemo = createToDemo(options)
+	const toDemo = createConverter(options).toDemo
 	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
 })
 
 it("render with classes", () => {
-	const toDemo = createToDemo({ ...options, mode: "class" })
+	const toDemo = createConverter({ ...options, mode: "class" }).toDemo
 	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
 })
 
 it("inverse", () => {
-	const toHtml = createToHtml({ theme: { foreground: "#eee" } })
+	const toHtml = createConverter({ theme: { foreground: "#eee" } }).toHtml
 	expect(toHtml(`hello\x1b[7mworld\x1b[m`)).toEqual(
 		'<span style="color:#eeeeee">hello</span><span style="background-color:#eeeeee">world</span>',
 	)
 })
 
 it("dim", () => {
-	const toHtml = createToHtml(options)
+	const toHtml = createConverter(options).toHtml
 	expect(toHtml(`hello\x1b[2mworld\x1b[m`)).toEqual('hello<span style="opacity:0.5">world</span>')
 	expect(toHtml(`hello\x1b[44;2mworld\x1b[m`)).toEqual('hello<span style="background-color:#7ca7d8">world</span>')
 	expect(toHtml(`hello\x1b[34;2mworld\x1b[m`)).toEqual('hello<span style="color:#7ca7d8;opacity:0.5">world</span>')
 	expect(toHtml(`hello\x1b[34;44;2mworld\x1b[m`)).toEqual(
-		'hello<span style="color:#7ca7d880;background-color:#7ca7d8">world</span>',
+		'hello<span style="background-color:#7ca7d8;color:#7ca7d880">world</span>',
 	)
 })
 
 it("minimumContrastRatio", () => {
-	let toHtml = createToHtml({ minimumContrastRatio: 1 })
+	let toHtml = createConverter({ minimumContrastRatio: 1 }).toHtml
 	expect(toHtml(`\x1b[31;41mhelloworld\x1b[m`)).toEqual(
-		'<span style="color:#e05561;background-color:#e05561">helloworld</span>',
+		'<span style="background-color:#e05561;color:#e05561">helloworld</span>',
 	)
-	toHtml = createToHtml({ minimumContrastRatio: 4.5 })
+	toHtml = createConverter({ minimumContrastRatio: 4.5 }).toHtml
 	expect(toHtml(`\x1b[31;41mhelloworld\x1b[m`)).toEqual(
-		'<span style="color:#ffffff;background-color:#e05561">helloworld</span>',
+		'<span style="background-color:#e05561;color:#ffffff">helloworld</span>',
 	)
 	expect(toHtml(`\x1b[107;92mhelloworld\x1b[m`)).toEqual(
-		'<span style="color:#6b914b;background-color:#d7dae0">helloworld</span>',
+		'<span style="background-color:#d7dae0;color:#6b914b">helloworld</span>',
 	)
 })
 
 it("other (inline)", () => {
-	let toHtml = createToHtml()
+	let toHtml = createConverter().toHtml
 	expect(toHtml("helloworld")).toEqual("helloworld")
 	expect(toHtml("\x1b[3;100mhelloworl\x1b[8md\x1b[m")).toEqual(
 		'<span style="background-color:#4f5666;font-style:italic">helloworl</span><span style="background-color:#4f5666;font-style:italic;opacity:0">d</span>',
@@ -168,16 +154,16 @@ it("other (inline)", () => {
 		'<a href="http://example.com" class="ansi-link">This is a link</a>',
 	)
 	expect(toHtml(`\x1b[2;31;41mhelloworld\x1b[m`)).toEqual(
-		'<span style="color:#fcdfe380;background-color:#e05561">helloworld</span>',
+		'<span style="background-color:#e05561;color:#fcdfe380">helloworld</span>',
 	)
-	toHtml = createToHtml({ theme: { foreground: "#eeeeee" } })
+	toHtml = createConverter({ theme: { foreground: "#eeeeee" } }).toHtml
 	expect(toHtml(`\x1b[2;41mhelloworld\x1b[m`)).toEqual(
-		'<span style="color:#eeeeee80;background-color:#e05561">helloworld</span>',
+		'<span style="background-color:#e05561;color:#eeeeee80">helloworld</span>',
 	)
 })
 
 it("other (class)", () => {
-	const toHtml = createToHtml({ mode: "class" })
+	const toHtml = createConverter({ mode: "class" }).toHtml
 	expect(toHtml(`\x1b[7mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-inverse ansi-bg-inverse">helloworld</span>')
 	expect(toHtml(`\x1b[1;38;5;1mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-9 ansi-bold">helloworld</span>')
 	expect(toHtml(`\x1b[2;3;4;5;6;7;8;9mhelloworld\x1b[m`)).toEqual(
@@ -187,11 +173,11 @@ it("other (class)", () => {
 })
 
 it("throw error", () => {
-	const toHtml = createToHtml()
+	const toHtml = createConverter().toHtml
 	expect(() => toHtml(`\x1b[38;5;288mhelloworld288\x1b[m`)).toThrowError("foreground is not defined: 288")
 })
 
 it("throw error", () => {
-	const toHtml = createToHtml()
+	const toHtml = createConverter().toHtml
 	expect(() => toHtml(`\x1b[48;5;728mhelloworld728\x1b[m`)).toThrowError("background is not defined: 728")
 })
