@@ -1,3 +1,4 @@
+import fs from "fs"
 import { blend } from "../src/colors"
 import { createConverter } from "../src/parse"
 
@@ -95,6 +96,7 @@ it("render", () => {
 	const toDemo = createConverter(options).toDemo
 	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
+	fs.writeFileSync("output.html", output)
 })
 
 it("render with classes", () => {
@@ -171,6 +173,11 @@ it("other (class)", () => {
 		'<span class="ansi-fg-inverse ansi-bg-inverse ansi-underline ansi-strike ansi-italic ansi-dim ansi-hidden">helloworld</span>',
 	)
 	expect(toHtml(`\x1b[2;31mhelloworld\x1b[m`)).toEqual('<span class="ansi-fg-1 ansi-dim">helloworld</span>')
+})
+
+it("escape html", () => {
+	const toHtml = createConverter({ escapeHTML: true }).toHtml
+	expect(toHtml(`\x1b[31mhello><world\x1b[m`)).toEqual('<span style="color:#e05561">hello&gt;&lt;world</span>')
 })
 
 it("throw error", () => {

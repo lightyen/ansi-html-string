@@ -44,6 +44,7 @@ interface Context extends Attributes {
 	contrastCache: ContrastCache
 	mode: Mode
 	palette: Palette
+	escapeHTML: boolean
 	isSpan: boolean
 	prevStyle: SpanStyle
 	isAnchor: boolean
@@ -51,13 +52,14 @@ interface Context extends Attributes {
 	styleChanged: boolean
 }
 
-function createContext({ minimumContrastRatio = 3, mode = "inline", theme }: Options = {}): Context {
+function createContext({ minimumContrastRatio = 3, mode = "inline", theme, escapeHTML }: Options = {}): Context {
 	return {
 		classPrefix: "ansi-",
 		contrastCache: new ContrastCache(),
 		minimumContrastRatio,
 		mode: mode === "class" ? Mode.Class : Mode.Inline,
 		palette: createPalette(theme),
+		escapeHTML: escapeHTML ?? false,
 		fgIndexOrRgb: -1,
 		bgIndexOrRgb: -1,
 		fgMode: ColorMode.DEFAULT,
@@ -92,6 +94,8 @@ export interface Options {
 	mode?: "inline" | "class"
 	/** user theme */
 	theme?: Theme
+	/** escape html (e.g. convert '<' to '&lt;', default: false) */
+	escapeHTML?: boolean
 }
 
 interface Converter {
@@ -411,6 +415,25 @@ export function createConverter(options?: Options): Converter {
 					}
 				}
 				c.styleChanged = false
+			}
+			if (c.escapeHTML) {
+				switch (char) {
+					case ASCII.LessThan:
+						buffer += "&lt;"
+						return
+					case ASCII.GreaterThan:
+						buffer += "&gt;"
+						return
+					case ASCII.And:
+						buffer += "&amp;"
+						return
+					case ASCII.DoubleQuote:
+						buffer += "&quot;"
+						return
+					case ASCII.SingleQuote:
+						buffer += "&apos;"
+						return
+				}
 			}
 			buffer += String.fromCharCode(char)
 		}
