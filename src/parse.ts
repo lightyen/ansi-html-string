@@ -140,6 +140,11 @@ export function createConverter(options?: Options): Converter {
 				} else if (nextChar === ASCII.RightSquareBracket) {
 					i++
 					readOSC()
+				} else if (nextChar === ASCII.LeftRoundBracket) {
+					i++
+					readAny()
+				} else {
+					// not implement yet
 				}
 				i++
 				char = rawText.charCodeAt(i)
@@ -266,6 +271,17 @@ export function createConverter(options?: Options): Converter {
 					})
 				}
 				c.isAnchor = false
+			}
+		}
+
+		function readAny() {
+			let char = rawText.charCodeAt(i)
+			while (!Number.isNaN(char)) {
+				if (char < ASCII.Space || char >= ASCII.At) {
+					break
+				}
+				i++
+				char = rawText.charCodeAt(i)
 			}
 		}
 

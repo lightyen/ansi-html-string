@@ -137,6 +137,7 @@ it("minimumContrastRatio", () => {
 it("other (inline)", () => {
 	let toHtml = createConverter().toHtml
 	expect(toHtml("helloworld")).toEqual("helloworld")
+	expect(toHtml("\u001b(B\u001b[mhelloworld\x1b[m")).toEqual("helloworld")
 	expect(toHtml("\x1b[3;100mhelloworl\x1b[8md\x1b[m")).toEqual(
 		'<span style="background-color:#4f5666;font-style:italic">helloworl</span><span style="background-color:#4f5666;font-style:italic;opacity:0">d</span>',
 	)
