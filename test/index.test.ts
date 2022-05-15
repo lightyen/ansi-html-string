@@ -1,4 +1,3 @@
-import fs from "fs"
 import { blend } from "../src/colors"
 import { createConverter } from "../src/parse"
 
@@ -96,7 +95,6 @@ it("render", () => {
 	const toDemo = createConverter(options).toDemo
 	const output = toDemo(demoText)
 	expect(output).toMatchSnapshot()
-	fs.writeFileSync("output.html", output)
 })
 
 it("render with classes", () => {
