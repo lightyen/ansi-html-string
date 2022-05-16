@@ -4,7 +4,7 @@
 // https://ttssh2.osdn.jp/manual/4/en/about/ctrlseq.html
 // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
-export enum ASCII {
+export enum Code {
 	Undefined = Number.NaN,
 	// C0
 	NUL = 0x00,
@@ -138,6 +138,7 @@ export enum ASCII {
 	RightCurlyBracket = 0x7d,
 	Tilde = 0x7e,
 	DEL = 0x7f,
+
 	// C1 https://en.wikipedia.org/wiki/C0_and_C1_control_codes
 	PAD = 0x80,
 	HOP = 0x81,

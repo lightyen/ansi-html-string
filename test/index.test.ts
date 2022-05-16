@@ -35,6 +35,20 @@ it("hyperlink", () => {
 	)
 })
 
+it("C1", () => {
+	const toHtml = createConverter(options).toHtml
+	const CSI = Buffer.from([0xc2, 0x9b]).toString("utf8")
+	const ST = Buffer.from([0xc2, 0x9c]).toString("utf8")
+	const OSC = Buffer.from([0xc2, 0x9d]).toString("utf8")
+	expect(
+		toHtml(
+			`he${CSI}31mllo${OSC}8;id=app;http://example.com${ST}This is ${OSC}8;id=app:rel=noopener noreferrer;http://example.com${ST}a ${CSI}34mli${CSI}34mnk${OSC}8;;${ST}world${CSI}m`,
+		),
+	).toEqual(
+		'he<span style="color:#d34f56">llo</span><a href="http://example.com" class="ansi-link" id="app"><span style="color:#d34f56">This is </span></a><a href="http://example.com" class="ansi-link" id="app" rel="noopener noreferrer"><span style="color:#d34f56">a </span><span style="color:#7ca7d8">link</span></a><span style="color:#7ca7d8">world</span>',
+	)
+})
+
 it("endurance failure", () => {
 	const toHtml = createConverter().toHtml
 	expect(toHtml(`\x1b[31m\x1b[0;;31;mhelloworld\x1b[m`)).toEqual("helloworld")

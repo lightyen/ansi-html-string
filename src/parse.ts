@@ -1,4 +1,4 @@
-import { ASCII, isNumber, SGR } from "./code"
+import { Code, isNumber, SGR } from "./code"
 import { ColorMode, ContrastCache, createPalette, ensureContrastRatio, Palette, Theme, toCss, toRgb } from "./colors"
 
 interface Attributes {
@@ -131,20 +131,20 @@ export function createConverter(options?: Options): Converter {
 		let i = 0
 		let char = rawText.charCodeAt(i)
 		while (i < rawText.length) {
-			if (char === ASCII.ESC) {
+			if (char === Code.ESC) {
 				i++
 				const nextChar = rawText.charCodeAt(i)
 				if (Number.isNaN(nextChar)) {
 					return buffer
 				}
-				if (nextChar === ASCII.LeftSquareBracket) {
+				if (nextChar === Code.LeftSquareBracket) {
 					i++
 					readCSI()
 					c.styleChanged = true
-				} else if (nextChar === ASCII.RightSquareBracket) {
+				} else if (nextChar === Code.RightSquareBracket) {
 					i++
 					readOSC()
-				} else if (nextChar === ASCII.LeftRoundBracket) {
+				} else if (nextChar === Code.LeftRoundBracket) {
 					i++
 					readAny()
 				} else {
@@ -153,12 +153,25 @@ export function createConverter(options?: Options): Converter {
 				i++
 				char = rawText.charCodeAt(i)
 				continue
+			} else if (char === Code.CSI) {
+				i++
+				readCSI()
+				c.styleChanged = true
+				i++
+				char = rawText.charCodeAt(i)
+				continue
+			} else if (char === Code.OSC) {
+				i++
+				readOSC()
+				i++
+				char = rawText.charCodeAt(i)
+				continue
 			}
 
 			switch (char) {
-				case ASCII.BS:
-				case ASCII.VT:
-				case ASCII.DEL:
+				case Code.BS:
+				case Code.VT:
+				case Code.DEL:
 					i++
 					char = rawText.charCodeAt(i)
 					continue
@@ -179,18 +192,18 @@ export function createConverter(options?: Options): Converter {
 			let num = 0
 			const params: number[] = []
 			while (!Number.isNaN(char)) {
-				if (char < ASCII.Space || char >= ASCII.At) {
+				if (char < Code.Space || char >= Code.At) {
 					params.push(num)
-					if (char === ASCII.m) {
+					if (char === Code.m) {
 						setAttributes(params)
 					}
 					break
 				}
-				if (char === ASCII.SemiColon) {
+				if (char === Code.SemiColon) {
 					params.push(num)
 					num = 0
 				} else if (isNumber(char)) {
-					num = 10 * num + (char - ASCII._0)
+					num = 10 * num + (char - Code._0)
 				}
 				i++
 				char = rawText.charCodeAt(i)
@@ -204,28 +217,28 @@ export function createConverter(options?: Options): Converter {
 			const paramsPart: number[] = []
 			const urlPart: number[] = []
 			while (!Number.isNaN(char)) {
-				if (char === ASCII.ST || char === ASCII.BEL) {
+				if (char === Code.ST || char === Code.BEL) {
 					if (mode == 8) ret()
 					break
 				}
 
-				if (char === ASCII.ESC) {
+				if (char === Code.ESC) {
 					i++
 					char = rawText.charCodeAt(i)
 					if (Number.isNaN(char)) {
 						return
 					}
-					if (char === ASCII.Backslash) {
+					if (char === Code.Backslash) {
 						if (mode == 8) ret()
 						break
 					}
 					return
 				}
 
-				if (char == ASCII.SemiColon) {
+				if (char == Code.SemiColon) {
 					state++
 				} else if (state === 0) {
-					mode = char - ASCII._0
+					mode = char - Code._0
 				} else if (state === 1) {
 					paramsPart.push(char)
 				} else if (state === 2) {
@@ -281,7 +294,7 @@ export function createConverter(options?: Options): Converter {
 		function readAny() {
 			let char = rawText.charCodeAt(i)
 			while (!Number.isNaN(char)) {
-				if (char < ASCII.Space || char >= ASCII.At) {
+				if (char < Code.Space || char >= Code.At) {
 					break
 				}
 				i++
@@ -418,19 +431,19 @@ export function createConverter(options?: Options): Converter {
 			}
 			if (c.escapeHTML) {
 				switch (char) {
-					case ASCII.LessThan:
+					case Code.LessThan:
 						buffer += "&lt;"
 						return
-					case ASCII.GreaterThan:
+					case Code.GreaterThan:
 						buffer += "&gt;"
 						return
-					case ASCII.And:
+					case Code.And:
 						buffer += "&amp;"
 						return
-					case ASCII.DoubleQuote:
+					case Code.DoubleQuote:
 						buffer += "&quot;"
 						return
-					case ASCII.SingleQuote:
+					case Code.SingleQuote:
 						buffer += "&apos;"
 						return
 				}
