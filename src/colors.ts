@@ -400,71 +400,108 @@ export interface ColorObject {
 	css: string
 }
 
-export function toColorObject(hexRgb: string): ColorObject | null {
-	const rgb = hexToColor(hexRgb)
-	if (rgb < 0) return null
+const hexRe = /(?:^#?([A-Fa-f0-9]{6})(?:[A-Fa-f0-9]{2})?$)|(?:^#?([A-Fa-f0-9]{3})[A-Fa-f0-9]?$)/
+const rgbaRe =
+	/(?:^rgba?\(\s*([+-]?(?:\d*[.])?\d+)\s*,\s*([+-]?(?:\d*[.])?\d+)\s*,\s*([+-]?(?:\d*[.])?\d+)\s*(?:,\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
+const rgbaRe2 =
+	/(?:^rgba?\(\s*([+-]?(?:\d*[.])?\d+)\s* \s*([+-]?(?:\d*[.])?\d+)\s* \s*([+-]?(?:\d*[.])?\d+)\s*(?:\/\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
+
+function parseColor(value: string): number | null {
+	let color = parseHexColor(value)
+	if (color !== null) return color
+	color = parseRgbaColor(value)
+	if (color !== null) return color
+	return null
+	function parseHexColor(value: string): number | null {
+		const result = hexRe.exec(value)
+		if (result !== null) {
+			if (result[1]) {
+				const v = parseInt(result[1], 16)
+				return Number.isNaN(v) ? null : v
+			} else if (result[2]) {
+				const v = parseInt(result[2], 16)
+				if (!Number.isNaN(v)) {
+					let r = v & 0xf00
+					let g = v & 0xf0
+					let b = v & 0xf
+					r = (r << 12) | (r << 8)
+					g = (g << 8) | (g << 4)
+					b = (b << 4) | b
+					return r | g | b
+				}
+			}
+		}
+		return null
+	}
+	function parseRgbaColor(value: string): number | null {
+		let result = rgbaRe.exec(value)
+		if (result !== null) {
+			const r = toInt(result[1])
+			const g = toInt(result[2])
+			const b = toInt(result[3])
+			return (r << 16) | (g << 8) | b
+		}
+		result = rgbaRe2.exec(value)
+		if (result !== null) {
+			const r = toInt(result[1])
+			const g = toInt(result[2])
+			const b = toInt(result[3])
+			return (r << 16) | (g << 8) | b
+		}
+		return null
+	}
+	function toInt(value: string): number {
+		const n = parseInt(value)
+		if (Number.isNaN(n)) return 0
+		return Math.round(Math.min(255, Math.max(0, n)))
+	}
+}
+
+export function toColorObject(value: string): ColorObject | null {
+	const rgb = parseColor(value)
+	if (rgb === null) return null
 	return {
 		rgb,
 		css: toCss(rgb),
 	}
-	function hexToColor(rgb: string): number {
-		let s = rgb.replace("#", "")
-		let v = -1
-		switch (s.length) {
-			case 8:
-				s = s.slice(0, 6)
-				break
-			case 6:
-				break
-			case 4:
-			case 3:
-				s = s.slice(0, 1).repeat(2) + s.slice(1, 2).repeat(2) + s.slice(2, 3).repeat(2)
-				break
-			default:
-				return -1
-		}
-		v = parseInt(s, 16)
-		if (Number.isNaN(v)) v = -1
-		return v
-	}
 }
 
 export interface Theme {
-	/** hex */
+	/** color: hex, rgb */
 	foreground?: string
-	/** hex */
+	/** color: hex, rgb */
 	background?: string
-	/** hex */
+	/** color: hex, rgb */
 	black?: string
-	/** hex */
+	/** color: hex, rgb */
 	red?: string
-	/** hex */
+	/** color: hex, rgb */
 	green?: string
-	/** hex */
+	/** color: hex, rgb */
 	yellow?: string
-	/** hex */
+	/** color: hex, rgb */
 	blue?: string
-	/** hex */
+	/** color: hex, rgb */
 	magenta?: string
-	/** hex */
+	/** color: hex, rgb */
 	cyan?: string
-	/** hex */
+	/** color: hex, rgb */
 	white?: string
-	/** hex */
+	/** color: hex, rgb */
 	gray?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightRed?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightGreen?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightYellow?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightBlue?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightMagenta?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightCyan?: string
-	/** hex */
+	/** color: hex, rgb */
 	brightWhite?: string
 }
 

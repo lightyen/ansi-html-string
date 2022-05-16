@@ -5,7 +5,7 @@ const options = {
 	minimumContrastRatio: 1,
 	theme: {
 		black: "#000000",
-		red: "#D34F56",
+		red: "rgb(211, 79, 86)",
 		green: "#B9C954",
 		yellow: "#E6C452",
 		blue: "#7CA7D8",
