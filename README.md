@@ -25,9 +25,9 @@ var str = converter.toHtml('\x1b[35mhelloworld\x1b[0m');
 var str = createConverter({
   minimumContrastRatio: 4.5,
   theme: {
-    background: "#23272e", // default bg
-    foreground: "#abb2bf", // default fg
-    red: "#000000", // hex only
+    background: "#23272e", // default background
+    foreground: "#abb2bf", // default foreground
+    red: "#000000",
     ...
   },
 }).toHtml('\x1b[35mhelloworld\x1b[0m');
