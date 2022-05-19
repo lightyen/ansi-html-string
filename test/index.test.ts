@@ -4,14 +4,14 @@ import { createConverter } from "../src/parse"
 const options = {
 	minimumContrastRatio: 1,
 	theme: {
-		black: "#000000",
+		black: "black",
 		red: "rgb(211, 79, 86)",
 		green: "#B9C954",
 		yellow: "#E6C452",
 		blue: "#7CA7D8",
 		magenta: "#C299D6",
 		cyan: "#73BFB1",
-		white: "#FFFFFF",
+		white: "white",
 	},
 }
 
