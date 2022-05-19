@@ -1,6 +1,6 @@
 {
   "name": "ansi-html-string",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Convert ANSI escape sequences to html strings",
   "types": "lib/index.d.ts",
   "main": "./lib/index.js",
