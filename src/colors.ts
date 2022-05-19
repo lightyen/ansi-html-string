@@ -405,13 +405,17 @@ const rgbaRe =
 	/(?:^rgba?\(\s*([+-]?(?:\d*[.])?\d+)\s*,\s*([+-]?(?:\d*[.])?\d+)\s*,\s*([+-]?(?:\d*[.])?\d+)\s*(?:,\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
 const rgbaRe2 =
 	/(?:^rgba?\(\s*([+-]?(?:\d*[.])?\d+)\s* \s*([+-]?(?:\d*[.])?\d+)\s* \s*([+-]?(?:\d*[.])?\d+)\s*(?:\/\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
+const hslaRe =
+	/(?:^hsla?\(\s*([+-]?(?:\d*[.])?\d+)\s*,\s*([+-]?(?:\d*[.])?\d+%)\s*,\s*([+-]?(?:\d*[.])?\d+%)\s*(?:,\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
+const hslaRe2 =
+	/(?:^hsla?\(\s*([+-]?(?:\d*[.])?\d+)\s* \s*([+-]?(?:\d*[.])?\d+%)\s* \s*([+-]?(?:\d*[.])?\d+%)\s*(?:\/\s*([+-]?(?:\d*[.])?\d+)\s*)?\)$)/
 
-function parseColor(value: string): number | null {
+export function parseColor(value: string): number | null {
 	let color = parseHexColor(value)
 	if (color !== null) return color
 	color = parseRgbaColor(value)
 	if (color !== null) return color
-	return null
+	return parseHslaColor(value)
 	function parseHexColor(value: string): number | null {
 		const result = hexRe.exec(value)
 		if (result !== null) {
@@ -449,6 +453,56 @@ function parseColor(value: string): number | null {
 			return (r << 16) | (g << 8) | b
 		}
 		return null
+	}
+	function parseHslaColor(value: string): number | null {
+		let result = hslaRe.exec(value)
+		if (result !== null) {
+			const h = hue(result[1])
+			const s = t(result[2].slice(0, -1))
+			const l = t(result[3].slice(0, -1))
+			return hslToRgb(h, s, l)
+		}
+		result = hslaRe2.exec(value)
+		if (result !== null) {
+			const h = hue(result[1])
+			const s = t(result[2].slice(0, -1))
+			const l = t(result[3].slice(0, -1))
+			return hslToRgb(h, s, l)
+		}
+		return null
+		function hue(value: string) {
+			let v = parseFloat(value)
+			v %= 360
+			return Math.min(360, Math.max(0, v))
+		}
+		function t(value: string) {
+			const v = parseFloat(value)
+			return Math.min(100, Math.max(0, v)) / 100
+		}
+
+		function hueToRgb(p: number, q: number, hue: number) {
+			if (hue < 0) hue += 6
+			if (hue >= 6) hue -= 6
+
+			if (hue < 1) return p + (q - p) * hue
+			else if (hue < 3) return q
+			else if (hue < 4) return p + (q - p) * (4 - hue)
+			return p
+		}
+		function hslToRgb(h: number, s: number, l: number) {
+			let t2: number
+			h = h / 60
+			if (l <= 0.5) {
+				t2 = l * (s + 1)
+			} else {
+				t2 = l + s - l * s
+			}
+			const t1 = l * 2 - t2
+			const r = Math.round(hueToRgb(t1, t2, h + 2) * 255)
+			const g = Math.round(hueToRgb(t1, t2, h) * 255)
+			const b = Math.round(hueToRgb(t1, t2, h - 2) * 255)
+			return (r << 16) | (g << 8) | b
+		}
 	}
 	function toInt(value: string): number {
 		const n = parseInt(value)

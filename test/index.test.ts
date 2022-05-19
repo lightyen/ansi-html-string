@@ -1,4 +1,3 @@
-import { blend } from "../src/colors"
 import { createConverter } from "../src/parse"
 
 const options = {
@@ -80,10 +79,6 @@ it("unicode", () => {
 	expect(toHtml(`\x1b[4;31m咖啡\x1b[34m真的\x1b[0m很好喝`)).toEqual(
 		'<span style="color:#d34f56;text-decoration:underline">咖啡</span><span style="color:#7ca7d8;text-decoration:underline">真的</span>很好喝',
 	)
-})
-
-it("blend color", () => {
-	expect(blend(0x231ee780, 0x330212ff)).toBeCloseTo(0x2b107d00, -1)
 })
 
 const demoText = `MacroError:
