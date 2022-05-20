@@ -9,6 +9,7 @@ interface Attributes {
 	bold: boolean
 	dim: boolean
 	underline: boolean
+	blink: boolean
 	inverse: boolean
 	italic: boolean
 	strike: boolean
@@ -23,6 +24,7 @@ interface SpanStyle {
 	bold: boolean
 	dim: boolean
 	underline: boolean
+	blink: boolean
 	italic: boolean
 	strike: boolean
 	hidden: boolean
@@ -67,6 +69,7 @@ function createContext({ minimumContrastRatio = 3, mode = "inline", theme, escap
 		bold: false,
 		dim: false,
 		underline: false,
+		blink: false,
 		inverse: false,
 		italic: false,
 		strike: false,
@@ -81,6 +84,7 @@ function createContext({ minimumContrastRatio = 3, mode = "inline", theme, escap
 			dim: false,
 			italic: false,
 			underline: false,
+			blink: false,
 			hidden: false,
 			strike: false,
 		},
@@ -345,6 +349,8 @@ export function createConverter(options?: Options): Converter {
 						c.strike = true
 						break
 					case SGR.SlowBlink:
+						c.blink = true
+						break
 					case SGR.RapidBlink:
 						// undefined
 						break
@@ -461,6 +467,7 @@ export function createConverter(options?: Options): Converter {
 			style.dim ||
 			style.italic ||
 			style.underline ||
+			(c.mode === Mode.Class && style.blink) ||
 			style.hidden ||
 			style.strike
 		)
@@ -475,7 +482,8 @@ export function createConverter(options?: Options): Converter {
 			a.bold === b.bold &&
 			a.dim === b.dim &&
 			a.italic === b.italic &&
-			a.underline == b.underline &&
+			a.underline === b.underline &&
+			a.blink === b.blink &&
 			a.hidden === b.hidden &&
 			a.strike === b.strike
 		)
@@ -494,6 +502,7 @@ export function createConverter(options?: Options): Converter {
 		c.dim = false
 		c.italic = false
 		c.underline = false
+		c.blink = false
 		c.inverse = false
 		c.hidden = false
 		c.strike = false
@@ -504,6 +513,7 @@ export function createConverter(options?: Options): Converter {
 			dim: false,
 			italic: false,
 			underline: false,
+			blink: false,
 			hidden: false,
 			strike: false,
 		}
@@ -546,6 +556,7 @@ export function createConverter(options?: Options): Converter {
 			bold: c.bold,
 			dim: c.dim,
 			underline: c.underline,
+			blink: c.blink,
 			italic: c.italic,
 			strike: c.strike,
 			hidden: c.hidden,
@@ -569,6 +580,7 @@ export function createConverter(options?: Options): Converter {
 			if (s.strike) classes.push(c.classPrefix + "strike")
 			if (s.italic) classes.push(c.classPrefix + "italic")
 			if (s.dim) classes.push(c.classPrefix + "dim")
+			if (s.blink) classes.push(c.classPrefix + "blink")
 			if (s.hidden) classes.push(c.classPrefix + "hidden")
 		} else {
 			if (s.foreground) props["color"] = s.foreground
